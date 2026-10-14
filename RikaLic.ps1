@@ -1,6 +1,8 @@
 # Requires RunAsAdministrator
 param()
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+
 function Get-DecodedWindowsKey {
     try {
         $hex = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
@@ -371,33 +373,82 @@ function Install-OfficeKeyOnline {
     } else { Write-Log "Key không hợp lệ! Cần 25 ký tự." "WARN" }
 }
 
+function Format-IIDGrouped ($iid) {
+    if (-not $iid) { return "" }
+    $clean = $iid -replace '\D', ''
+    if ($clean.Length -eq 63) {
+        $groups = for ($i = 0; $i -lt 63; $i += 7) { $clean.Substring($i, 7) }
+        return ($groups -join " - ")
+    } elseif ($clean.Length -eq 54) {
+        $groups = for ($i = 0; $i -lt 54; $i += 6) { $clean.Substring($i, 6) }
+        return ($groups -join " - ")
+    }
+    return $clean
+}
+
+function Format-CIDGrouped ($cid) {
+    if (-not $cid) { return "" }
+    $clean = $cid -replace '\D', ''
+    if ($clean.Length -eq 48) {
+        $letters = @('A','B','C','D','E','F','G','H')
+        $groups = for ($i = 0; $i -lt 48; $i += 6) {
+            "[$($letters[$i/6])] $($clean.Substring($i, 6))"
+        }
+        return ($groups -join "  ")
+    }
+    return $clean
+}
+
 function Get-WinIID {
     $txtLog.Text = ""; Write-Log "Đang lấy Installation ID Windows..." "INFO"
     $result = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/dti"
     $iid = $result | Where-Object { $_ -match "\d{20,}" } | ForEach-Object { [regex]::match($_, "\d{20,}").Value } | Select-Object -First 1
-    if ($iid) { $txtIID.Text = $iid; [System.Windows.Forms.Clipboard]::SetText($iid); Write-Log "Lấy IID thành công và đã copy vào Clipboard: $iid" "CLEAN" }
-    else { Write-Log "Lỗi lấy IID. Vui lòng nạp Key trước." "WARN" }
+    if ($iid) {
+        $txtIID.Text = $iid
+        [System.Windows.Forms.Clipboard]::SetText($iid)
+        Write-Log "Lấy IID Windows thành công và đã copy vào Clipboard: $iid" "CLEAN"
+        $grouped = Format-IIDGrouped $iid
+        Write-Log "IID Dạng khối (đọc điện thoại): $grouped" "INFO"
+    } else {
+        Write-Log "Lỗi lấy IID. Vui lòng nạp Key Phone trước (dùng nút 'Nạp Key Phone Mới')." "WARN"
+    }
 }
 
 function Install-WinCID {
     $cleanCID = $txtCID.Text -replace '\D', ''
     if ($cleanCID.Length -eq 48) {
-        $txtCID.Text = $cleanCID; Write-Log "Đang nạp CID Windows..." "INFO"
+        $txtCID.Text = $cleanCID
+        Write-Log "Đang nạp CID Windows: $cleanCID..." "INFO"
         $result = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/atp $cleanCID"
-        if ($result -match "successfully" -or $result -match "thành công") { Write-Log "KÍCH HOẠT WINDOWS BY PHONE THÀNH CÔNG!" "CLEAN" }
-        else { Write-Log "Nạp CID thất bại:" "CRIT"; foreach ($r in $result) { Write-Log "  $r" "WARN" } }
-    } else { Write-Log "CID không hợp lệ! Phải đủ 48 số." "WARN" }
+        if ($result -match "successfully" -or $result -match "thành công") {
+            Write-Log "KÍCH HOẠT WINDOWS BY PHONE THÀNH CÔNG!" "CLEAN"
+            Check-TargetStatus
+        } else {
+            Write-Log "Nạp CID thất bại:" "CRIT"
+            foreach ($r in $result) { Write-Log "  $r" "WARN" }
+        }
+    } else {
+        Write-Log "CID không hợp lệ! Phải đủ 48 số (hiện có $($cleanCID.Length) số)." "WARN"
+    }
 }
 
 function Get-OfficeIID {
     $txtLog.Text = ""; Write-Log "Đang lấy Installation ID Office..." "INFO"
     $ospp = Get-OsppPath
-    if (!$ospp) { Write-Log "Không tìm thấy OSPP." "WARN"; return }
+    if (!$ospp) { Write-Log "Không tìm thấy OSPP. Office chưa cài đặt." "WARN"; return }
     $output = Invoke-CScript $ospp "/dti"
     $joined = ($output -join " "); $iid = $null
-    if ($joined -match "(\d{54}|\d{48}|\d{36}|\d{20,})") { $iid = $matches[1] }
-    if ($iid) { $txtIID.Text = $iid; [System.Windows.Forms.Clipboard]::SetText($iid); Write-Log "Lấy IID thành công và đã copy vào Clipboard: $iid" "CLEAN" }
-    else { Write-Log "Lỗi lấy IID Office. Hãy nạp Key trước." "WARN"; foreach ($l in $output) { Write-Log "  $l" "INFO" } }
+    if ($joined -match "(\d{63}|\d{54}|\d{48}|\d{36}|\d{20,})") { $iid = $matches[1] }
+    if ($iid) {
+        $txtIID.Text = $iid
+        [System.Windows.Forms.Clipboard]::SetText($iid)
+        Write-Log "Lấy IID Office thành công và đã copy vào Clipboard: $iid" "CLEAN"
+        $grouped = Format-IIDGrouped $iid
+        Write-Log "IID Dạng khối (đọc điện thoại): $grouped" "INFO"
+    } else {
+        Write-Log "Lỗi lấy IID Office. Hãy nạp Key Phone trước (dùng nút 'Nạp Key Phone Mới')." "WARN"
+        foreach ($l in $output) { Write-Log "  $l" "INFO" }
+    }
 }
 
 function Install-OfficeCID {
@@ -405,94 +456,289 @@ function Install-OfficeCID {
     if (!$ospp) { Write-Log "Không tìm thấy OSPP." "WARN"; return }
     $cleanCID = $txtCID.Text -replace '\D', ''
     if ($cleanCID.Length -eq 48) {
-        $txtCID.Text = $cleanCID; Write-Log "Đang nạp CID Office..." "INFO"
+        $txtCID.Text = $cleanCID
+        Write-Log "Đang nạp CID Office: $cleanCID..." "INFO"
         $result = Invoke-CScript $ospp "/actcid:$cleanCID"
-        if ($result -match "successful" -or $result -match "thành công" -or ($result -join " ") -match "successfully") { Write-Log "KÍCH HOẠT OFFICE BY PHONE THÀNH CÔNG!" "CLEAN" }
-        else { Write-Log "Nạp CID thất bại:" "CRIT"; foreach ($r in $result) { Write-Log "  $r" "WARN" } }
-    } else { Write-Log "CID không hợp lệ! Phải đủ 48 số." "WARN" }
-}
-
-function Invoke-AutoWinPhone {
-    Get-WinIID
-    $iid = $txtIID.Text.Trim()
-    if ([string]::IsNullOrWhiteSpace($iid) -or $iid.Length -ne 63) { return }
-    
-    Write-Log "Đang kết nối Server Get CID tự động..." "INFO"
-    try {
-        $response = Invoke-WebRequest -Uri "https://khoatoantin.com/api/getcid?iid=$iid" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
-        $cid = $response.Content.Trim() -replace '\D', ''
-        
-        if ($cid.Length -eq 48) {
-            $txtCID.Text = $cid
-            Write-Log "=> Đã lấy CID tự động thành công: $cid" "CLEAN"
-            Install-WinCID
+        if ($result -match "successful" -or $result -match "thành công" -or ($result -join " ") -match "successfully") {
+            Write-Log "KÍCH HOẠT OFFICE BY PHONE THÀNH CÔNG!" "CLEAN"
+            Check-TargetStatus
         } else {
-            Write-Log "Server trả về lỗi hoặc Key đã vượt quá giới hạn." "WARN"
-            Write-Log "Hãy copy IID và tự lấy CID trên Web, sau đó nạp thủ công." "INFO"
+            Write-Log "Nạp CID thất bại:" "CRIT"
+            foreach ($r in $result) { Write-Log "  $r" "WARN" }
         }
-    } catch {
-        Write-Log "Không thể kết nối đến Web API Get CID." "CRIT"
+    } else {
+        Write-Log "CID không hợp lệ! Phải đủ 48 số (hiện có $($cleanCID.Length) số)." "WARN"
     }
 }
 
-function Invoke-AutoOfficePhone {
-    Get-OfficeIID
-    $iid = $txtIID.Text.Trim()
-    if ([string]::IsNullOrWhiteSpace($iid) -or $iid.Length -ne 63) { return }
-    
-    Write-Log "Đang kết nối Server Get CID tự động..." "INFO"
-    try {
-        $response = Invoke-WebRequest -Uri "https://khoatoantin.com/api/getcid?iid=$iid" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
-        $cid = $response.Content.Trim() -replace '\D', ''
-        
-        if ($cid.Length -eq 48) {
-            $txtCID.Text = $cid
-            Write-Log "=> Đã lấy CID tự động thành công: $cid" "CLEAN"
-            Install-OfficeCID
-        } else {
-            Write-Log "Server trả về lỗi hoặc Key đã vượt quá giới hạn." "WARN"
-            Write-Log "Hãy copy IID và tự lấy CID trên Web, sau đó nạp thủ công." "INFO"
-        }
-    } catch {
-        Write-Log "Không thể kết nối đến Web API Get CID." "CRIT"
+function Get-TargetIID {
+    if ($rbTargetWin.Checked) {
+        Get-WinIID
+    } else {
+        Get-OfficeIID
     }
 }
 
-function Invoke-AutoGetCID {
-    $iid = $txtIID.Text.Trim()
-    if (-not ($iid -match "^\d{63}$")) {
-        Write-Log "IID không hợp lệ! Vui lòng Lấy IID trước (phải đủ 63 số)." "WARN"
+function Install-TargetCID {
+    if ($rbTargetWin.Checked) {
+        Install-WinCID
+    } else {
+        Install-OfficeCID
+    }
+}
+
+function Check-TargetStatus {
+    $txtLog.Text = ""
+    if ($rbTargetWin.Checked) {
+        Write-Log ">>> KIỂM TRA TRẠNG THÁI BẢN QUYỀN WINDOWS..." "INFO"
+        $resXpr = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/xpr"
+        foreach ($l in $resXpr) {
+            $lvl = if ($l -match "permanently|vĩnh viễn") { "CLEAN" } else { "INFO" }
+            Write-Log $l $lvl
+        }
+        $resDli = Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/dli"
+        foreach ($l in $resDli) {
+            if ($l -match "Name:|Description:|Partial Product Key:|License Status:") {
+                $lvl = if ($l -match "Licensed") { "CLEAN" } else { "INFO" }
+                Write-Log $l $lvl
+            }
+        }
+    } else {
+        Write-Log ">>> KIỂM TRA TRẠNG THÁI BẢN QUYỀN MICROSOFT OFFICE..." "INFO"
+        $ospp = Get-OsppPath
+        if (!$ospp) { Write-Log "Không tìm thấy OSPP. Office chưa cài đặt." "WARN"; return }
+        $resOffice = Invoke-CScript $ospp "/dstatus"
+        foreach ($l in $resOffice) {
+            if ($l -match "LICENSE NAME|LICENSE DESCRIPTION|LICENSE STATUS|Last 5 characters") {
+                $lvl = if ($l -match "LICENSED") { "CLEAN" } else { "INFO" }
+                Write-Log $l $lvl
+            }
+        }
+    }
+}
+
+function Open-SpecificWebCID ($url, $name) {
+    $clean = $txtIID.Text.Trim() -replace '\D', ''
+    if ($clean) {
+        [System.Windows.Forms.Clipboard]::SetText($clean)
+        Write-Log "ĐÃ SAO CHÉP IID VÀO CLIPBOARD: $clean" "CLEAN"
+    }
+    Write-Log "Đang mở trang web Get CID: $name ($url)..." "INFO"
+    Write-Log "HƯỚNG DẪN: Nhấn Ctrl+V để dán IID vào trang web để lấy mã CID." "CLEAN"
+    try {
+        Start-Process $url
+    } catch {
+        Write-Log "Không thể tự mở trình duyệt. Vui lòng truy cập thủ công: $url" "WARN"
+    }
+}
+
+function Invoke-AutoGetCIDFromIID {
+    $iid = $txtIID.Text.Trim() -replace '\D', ''
+    if (-not ($iid.Length -eq 63 -or $iid.Length -eq 54)) {
+        Write-Log "IID không hợp lệ! Vui lòng bấm 'Lấy IID' trước (phải đủ 63 hoặc 54 số)." "WARN"
+        return $false
+    }
+    
+    Write-Log ">>> BẮT ĐẦU YÊU CẦU GET CID TỰ ĐỘNG CHO IID: $iid" "INFO"
+    Write-Log "Đang liên hệ hệ thống Web API..." "INFO"
+    [System.Windows.Forms.Application]::DoEvents()
+    
+    $endpoints = @(
+        @{ Name = "KhoaToanTin (CIDMS API)"; Url = "https://khoatoantin.com/ajax/cidms_api?iids=$iid&username=trogiup24h&password=PHO" },
+        @{ Name = "GetCID.info API"; Url = "https://getcid.info/api/cid?iid=$iid" },
+        @{ Name = "GetCID.win API"; Url = "https://getcid.win/api?iid=$iid" }
+    )
+    
+    $cid = $null
+    foreach ($ep in $endpoints) {
+        try {
+            Write-Log "Thử máy chủ: $($ep.Name)..." "INFO"
+            $res = Invoke-RestMethod -Uri $ep.Url -Method Get -TimeoutSec 15 -ErrorAction Stop
+            $raw = "$res"
+            if ($res.cid) { $raw = "$($res.cid)" }
+            $clean = $raw -replace '\D', ''
+            if ($clean.Length -eq 48) {
+                $cid = $clean
+                Write-Log "=> Nhận CID thành công từ $($ep.Name)!" "CLEAN"
+                break
+            }
+        } catch {
+            Write-Log "  - Máy chủ $($ep.Name) không phản hồi hoặc yêu cầu xác thực riêng." "WARN"
+        }
+    }
+    
+    if ($cid -and $cid.Length -eq 48) {
+        $txtCID.Text = $cid
+        Write-Log "CID (48 số): $cid" "CLEAN"
+        $grouped = Format-CIDGrouped $cid
+        Write-Log "Dạng khối: $grouped" "INFO"
+        return $true
+    } else {
+        Write-Log "Các Web API tự động hiện tại đang quá tải hoặc yêu cầu captcha." "WARN"
+        Write-Log "-> ĐÃ TỰ ĐỘNG SAO CHÉP IID VÀO CLIPBOARD: $iid" "CLEAN"
+        Write-Log "GỢI Ý: Bấm nút '🌐 Mở Web Get CID' để mở trang web lấy CID và ấn Ctrl+V!" "INFO"
+        return $false
+    }
+}
+
+function Invoke-1ClickFullAutoPhone {
+    $txtLog.Text = ""
+    $targetName = if ($rbTargetWin.Checked) { "Windows" } else { "Microsoft Office" }
+    Write-Log "=== BẮT ĐẦU QUY TRÌNH AUTO ACTIVE BY PHONE 1-CLICK: $targetName ===" "INFO"
+    
+    # 1. Lấy IID
+    Get-TargetIID
+    $iid = $txtIID.Text.Trim() -replace '\D', ''
+    if (-not ($iid.Length -eq 63 -or $iid.Length -eq 54)) {
+        Write-Log "Không lấy được IID hợp lệ. Hãy kiểm tra xem bạn đã nạp Key Phone chưa!" "CRIT"
         return
     }
     
-    $txtLog.Text = ""
-    Write-Log "Đang gửi yêu cầu lấy CID tự động lên máy chủ..." "INFO"
-    Write-Log "Vui lòng đợi vài giây (tối đa 30s)..." "INFO"
-    [System.Windows.Forms.Application]::DoEvents()
-    
-    try {
-        # API Demo: Có thể thay thế bằng endpoint thực tế
-        $apiUrl = "https://getcid.info/api/cid?iid=$iid"
-        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -TimeoutSec 30 -ErrorAction Stop
-        
-        $cid = $null
-        if ($response.cid) { $cid = $response.cid }
-        elseif ($response -match "\d{48}") { $cid = $matches[0] }
-        
-        if ($cid -match "^\d{48}$") {
-            $txtCID.Text = $cid
-            Write-Log "Lấy CID tự động THÀNH CÔNG: $cid" "CLEAN"
-            Write-Log "Bây giờ bạn có thể bấm Nạp CID!" "INFO"
-        } else {
-            Write-Log "Máy chủ không trả về CID hợp lệ hoặc IID đã bị block." "WARN"
-            Write-Log "Dữ liệu trả về: $response" "INFO"
-        }
-    } catch {
-        Write-Log "Lỗi kết nối hoặc Web API tạm thời ngưng hoạt động." "CRIT"
-        Write-Log $_.Exception.Message "WARN"
-        Write-Log "Vui lòng lấy CID thủ công qua Web/Call." "INFO"
+    # 2. Lấy CID tự động
+    $ok = Invoke-AutoGetCIDFromIID
+    if ($ok -and $txtCID.Text.Trim().Length -eq 48) {
+        # 3. Nạp CID
+        Install-TargetCID
+    } else {
+        # Mở Web lấy CID tự động nếu API thất bại
+        Open-SpecificWebCID "https://khoatoantin.com/cid" "KhoaToanTin.com"
     }
 }
+
+function Invoke-AutoWinPhone {
+    $rbTargetWin.Checked = $true
+    Invoke-1ClickFullAutoPhone
+}
+
+function Invoke-AutoOfficePhone {
+    $rbTargetOffice.Checked = $true
+    Invoke-1ClickFullAutoPhone
+}
+
+function Invoke-AutoGetCID {
+    Invoke-AutoGetCIDFromIID
+}
+
+function Save-PhoneActivationBackup {
+    $targetName = if ($rbTargetWin.Checked) { "Windows" } else { "Microsoft Office" }
+    $iid = $txtIID.Text.Trim()
+    $cid = $txtCID.Text.Trim()
+    
+    if (-not $iid -and -not $cid) {
+        Write-Log "Chưa có thông tin IID hoặc CID để sao lưu!" "WARN"
+        [System.Windows.Forms.MessageBox]::Show("Chưa có thông tin IID hoặc CID để sao lưu!", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Warning)
+        return
+    }
+    
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
+    $fileName = "BKC_Phone_Lic_$($targetName -replace '\s','_')_$timestamp.txt"
+    $filePath = Join-Path $desktop $fileName
+    
+    $groupedIID = Format-IIDGrouped $iid
+    $groupedCID = Format-CIDGrouped $cid
+    
+    $content = @"
+================================================================================
+           BKC LIC - THÔNG TIN SAO LƯU BẢN QUYỀN BY PHONE
+================================================================================
+Thời gian sao lưu : $((Get-Date).ToString("dd/MM/yyyy HH:mm:ss"))
+Đối tượng         : $targetName
+Máy tính (Host)   : $env:COMPUTERNAME
+Người dùng        : $env:USERNAME
+
+--- THÔNG TIN CHI TIẾT ---
+Installation ID (IID - Thô)  : $iid
+Installation ID (Dạng khối)   : $groupedIID
+
+Confirmation ID (CID - Thô)  : $cid
+Confirmation ID (Dạng khối)   : $groupedCID
+
+--- HƯỚNG DẪN TÁI SỬ DỤNG ---
+Khi cài đặt lại hệ điều hành hoặc Office trên máy này:
+1. Nạp lại đúng Product Key tương ứng.
+2. Nạp lại Confirmation ID (CID) ở trên bằng công cụ BKC Lic hoặc lệnh:
+   - Windows: slmgr.vbs /atp $cid
+   - Office : ospp.vbs /actcid:`$cid
+Bản quyền sẽ được kích hoạt lại ngay lập tức mà không cần gọi điện thoại nữa!
+================================================================================
+Phát triển bởi: Trần Hà (BKC) - lic.bachkhoapc.vn
+================================================================================
+"@
+
+    try {
+        [System.IO.File]::WriteAllText($filePath, $content, [System.Text.Encoding]::UTF8)
+        Write-Log "ĐÃ SAO LƯU THÀNH CÔNG VÀO DESKTOP:" "CLEAN"
+        Write-Log "  -> $filePath" "CLEAN"
+        [System.Diagnostics.Process]::Start("notepad.exe", "`"$filePath`"") | Out-Null
+    } catch {
+        Write-Log "Lỗi ghi file sao lưu: $($_.Exception.Message)" "CRIT"
+    }
+}
+
+function Show-QuickKeyDialog {
+    $targetName = if ($rbTargetWin.Checked) { "Windows" } else { "Microsoft Office" }
+    
+    $formKey = New-Object System.Windows.Forms.Form
+    $formKey.Text = "Nạp Key Phone Cho $targetName"
+    $formKey.Size = New-Object System.Drawing.Size(460, 200)
+    $formKey.StartPosition = "CenterParent"
+    $formKey.FormBorderStyle = "FixedDialog"
+    $formKey.MaximizeBox = $false
+    $formKey.MinimizeBox = $false
+    $formKey.BackColor = [System.Drawing.Color]::FromArgb(245, 246, 250)
+    
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = "Nhập Product Key 25 ký tự (XXXXX-XXXXX-...):"
+    $lbl.Location = New-Object System.Drawing.Point(20, 20)
+    $lbl.AutoSize = $true
+    $lbl.Font = $fontNormal
+    $formKey.Controls.Add($lbl)
+    
+    $txtInput = New-Object System.Windows.Forms.TextBox
+    $txtInput.Location = New-Object System.Drawing.Point(20, 50)
+    $txtInput.Size = New-Object System.Drawing.Size(400, 28)
+    $txtInput.Font = $fontCode
+    $txtInput.CharacterCasing = "Upper"
+    $formKey.Controls.Add($txtInput)
+    
+    $btnOk = New-Object System.Windows.Forms.Button
+    $btnOk.Text = "Nạp Key Ngay"
+    $btnOk.Location = New-Object System.Drawing.Point(140, 100)
+    $btnOk.Size = New-Object System.Drawing.Size(160, 36)
+    $btnOk.BackColor = [System.Drawing.Color]::FromArgb(0, 150, 136)
+    $btnOk.ForeColor = [System.Drawing.Color]::White
+    $btnOk.FlatStyle = "Flat"
+    $btnOk.Cursor = "Hand"
+    $btnOk.Font = $fontBtn
+    $btnOk.Add_Click({
+        $k = $txtInput.Text.Trim()
+        if (Validate-Key $k) {
+            $formKey.Close()
+            $txtKey.Text = $k
+            Write-Log "Đang nạp Key cho $($targetName): $k..." "INFO"
+            if ($rbTargetWin.Checked) {
+                Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ipk $k" | Out-Null
+                Write-Log "Đã nạp Key Windows thành công. Hãy bấm 'Lấy IID'!" "CLEAN"
+            } else {
+                $ospp = Get-OsppPath
+                if ($ospp) {
+                    Invoke-CScript $ospp "/inpkey:$k" | Out-Null
+                    Write-Log "Đã nạp Key Office thành công. Hãy bấm 'Lấy IID'!" "CLEAN"
+                } else {
+                    Write-Log "Không tìm thấy OSPP. Office chưa cài đặt." "WARN"
+                }
+            }
+            Get-TargetIID
+        } else {
+            [System.Windows.Forms.MessageBox]::Show("Product Key không hợp lệ! Vui lòng nhập đúng định dạng 25 ký tự XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.", "Lỗi Định Dạng", 0, [System.Windows.Forms.MessageBoxIcon]::Warning)
+        }
+    })
+    $formKey.Controls.Add($btnOk)
+    
+    $formKey.ShowDialog() | Out-Null
+}
+
 
 function Invoke-DeepScan {
     $txtLog.Text = ""; Write-Log ">>> KHỞI ĐỘNG TRÌNH QUÉT BẢO MẬT DẤU VẾT CRACK..." "INFO"; $isCrack = $false
@@ -803,9 +1049,7 @@ function Invoke-HardwareScan {
             Write-Log "  - $($v.Name)$vram" "CLEAN"
         }
 
-        Write-Log "Ổ đĩa vật lý:" "CLEAN"
         try {
-                    try {
             $battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
             if ($battery) {
                 Write-Log "Pin (Battery):" "CLEAN"
@@ -816,7 +1060,10 @@ function Invoke-HardwareScan {
                 }
             }
         } catch {}
-        $disks = Get-PhysicalDisk
+
+        Write-Log "Ổ đĩa vật lý:" "CLEAN"
+        try {
+            $disks = Get-PhysicalDisk
             foreach ($d in $disks) {
                 $size = [Math]::Round($d.Size / 1GB, 2)
                 $type = $d.MediaType
@@ -909,76 +1156,307 @@ $tab2 = New-Object System.Windows.Forms.TabPage
 $tab2.Text = "2. Kích Hoạt By Phone"
 $tab2.BackColor = [System.Drawing.Color]::White
 
+# --- DÒNG 1: CHỌN ĐỐI TƯỢNG (TARGET SELECTOR) ---
+$lblTarget = New-Object System.Windows.Forms.Label
+$lblTarget.Text = "Đối tượng kích hoạt:"
+$lblTarget.Location = New-Object System.Drawing.Point(15, 12)
+$lblTarget.Font = $fontSection
+$lblTarget.AutoSize = $true
+$tab2.Controls.Add($lblTarget)
+
+$rbTargetWin = New-Object System.Windows.Forms.RadioButton
+$rbTargetWin.Text = "Windows (Hệ điều hành)"
+$rbTargetWin.Location = New-Object System.Drawing.Point(185, 10)
+$rbTargetWin.Font = $fontBtn
+$rbTargetWin.AutoSize = $true
+$rbTargetWin.Checked = $true
+$rbTargetWin.Cursor = [System.Windows.Forms.Cursors]::Hand
+$rbTargetWin.Add_CheckedChanged({
+    if ($rbTargetWin.Checked) { Write-Log "Đã chọn đối tượng làm việc: Windows" "INFO" }
+})
+$tab2.Controls.Add($rbTargetWin)
+
+$rbTargetOffice = New-Object System.Windows.Forms.RadioButton
+$rbTargetOffice.Text = "Microsoft Office"
+$rbTargetOffice.Location = New-Object System.Drawing.Point(380, 10)
+$rbTargetOffice.Font = $fontBtn
+$rbTargetOffice.AutoSize = $true
+$rbTargetOffice.Checked = $false
+$rbTargetOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
+$rbTargetOffice.Add_CheckedChanged({
+    if ($rbTargetOffice.Checked) { Write-Log "Đã chọn đối tượng làm việc: Microsoft Office" "INFO" }
+})
+$tab2.Controls.Add($rbTargetOffice)
+
+$btnCheckLicStatus = New-Object System.Windows.Forms.Button
+$btnCheckLicStatus.Text = "Kiểm Tra Bản Quyền"
+$btnCheckLicStatus.Location = New-Object System.Drawing.Point(610, 8)
+$btnCheckLicStatus.Size = New-Object System.Drawing.Size(205, 28)
+$btnCheckLicStatus.Font = $fontSmall
+$btnCheckLicStatus.BackColor = [System.Drawing.Color]::FromArgb(25, 118, 210)
+$btnCheckLicStatus.ForeColor = [System.Drawing.Color]::White
+$btnCheckLicStatus.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnCheckLicStatus.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCheckLicStatus.Add_Click({ Toggle-Buttons $false; Check-TargetStatus; Toggle-Buttons $true })
+$tab2.Controls.Add($btnCheckLicStatus); $allButtons += $btnCheckLicStatus
+
+# --- DÒNG 2: INSTALLATION ID (IID) ---
 $lblIID = New-Object System.Windows.Forms.Label
-$lblIID.Text = "Installation ID (IID):"
-$lblIID.Location = New-Object System.Drawing.Point(15, 20)
+$lblIID.Text = "Installation ID (IID - Bước 2):"
+$lblIID.Location = New-Object System.Drawing.Point(15, 42)
+$lblIID.Font = $fontSection
 $lblIID.AutoSize = $true
 $tab2.Controls.Add($lblIID)
 
+$btnCopyIID = New-Object System.Windows.Forms.Button
+$btnCopyIID.Text = "Copy IID"
+$btnCopyIID.Location = New-Object System.Drawing.Point(235, 40)
+$btnCopyIID.Size = New-Object System.Drawing.Size(85, 24)
+$btnCopyIID.Font = $fontSmall
+$btnCopyIID.BackColor = [System.Drawing.Color]::White
+$btnCopyIID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCopyIID.Add_Click({
+    $clean = $txtIID.Text -replace '\D', ''
+    if ($clean) {
+        [System.Windows.Forms.Clipboard]::SetText($clean)
+        Write-Log "Đã sao chép IID (số liền) vào Clipboard: $clean" "CLEAN"
+    } else { Write-Log "Ô IID đang trống!" "WARN" }
+})
+$tab2.Controls.Add($btnCopyIID); $allButtons += $btnCopyIID
+
+$btnCopyIIDGrouped = New-Object System.Windows.Forms.Button
+$btnCopyIIDGrouped.Text = "Copy Dạng Khối (7 số)"
+$btnCopyIIDGrouped.Location = New-Object System.Drawing.Point(325, 40)
+$btnCopyIIDGrouped.Size = New-Object System.Drawing.Size(160, 24)
+$btnCopyIIDGrouped.Font = $fontSmall
+$btnCopyIIDGrouped.BackColor = [System.Drawing.Color]::White
+$btnCopyIIDGrouped.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCopyIIDGrouped.Add_Click({
+    $clean = $txtIID.Text -replace '\D', ''
+    if ($clean) {
+        $grouped = Format-IIDGrouped $clean
+        [System.Windows.Forms.Clipboard]::SetText($grouped)
+        Write-Log "Đã sao chép IID (dạng khối) vào Clipboard: $grouped" "CLEAN"
+    } else { Write-Log "Ô IID đang trống!" "WARN" }
+})
+$tab2.Controls.Add($btnCopyIIDGrouped); $allButtons += $btnCopyIIDGrouped
+
 $txtIID = New-Object System.Windows.Forms.TextBox
-$txtIID.Location = New-Object System.Drawing.Point(15, 45)
-$txtIID.Size = New-Object System.Drawing.Size(390, 28)
-$txtIID.Font = $fontCode; $txtIID.ReadOnly = $true
+$txtIID.Location = New-Object System.Drawing.Point(15, 68)
+$txtIID.Size = New-Object System.Drawing.Size(585, 28)
+$txtIID.Font = $fontCode
 $tab2.Controls.Add($txtIID)
 
+$btnGetIID = New-Object System.Windows.Forms.Button
+$btnGetIID.Text = "Lấy IID (Installation ID)"
+$btnGetIID.Location = New-Object System.Drawing.Point(610, 66)
+$btnGetIID.Size = New-Object System.Drawing.Size(205, 30)
+$btnGetIID.Font = $fontBtn
+$btnGetIID.BackColor = [System.Drawing.Color]::FromArgb(0, 131, 143)
+$btnGetIID.ForeColor = [System.Drawing.Color]::White
+$btnGetIID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnGetIID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnGetIID.Add_Click({ Toggle-Buttons $false; Get-TargetIID; Toggle-Buttons $true })
+$tab2.Controls.Add($btnGetIID); $allButtons += $btnGetIID
+
+# --- DÒNG 3: CONFIRMATION ID (CID) ---
 $lblCID = New-Object System.Windows.Forms.Label
-$lblCID.Text = "Confirmation ID (CID):"
-$lblCID.Location = New-Object System.Drawing.Point($col2, 20)
+$lblCID.Text = "Confirmation ID (CID - Bước 3 - 48 số):"
+$lblCID.Location = New-Object System.Drawing.Point(15, 102)
+$lblCID.Font = $fontSection
 $lblCID.AutoSize = $true
 $tab2.Controls.Add($lblCID)
 
+$btnPasteCID = New-Object System.Windows.Forms.Button
+$btnPasteCID.Text = "Dán CID (Paste)"
+$btnPasteCID.Location = New-Object System.Drawing.Point(295, 100)
+$btnPasteCID.Size = New-Object System.Drawing.Size(105, 24)
+$btnPasteCID.Font = $fontSmall
+$btnPasteCID.BackColor = [System.Drawing.Color]::White
+$btnPasteCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnPasteCID.Add_Click({
+    if ([System.Windows.Forms.Clipboard]::ContainsText()) {
+        $clip = [System.Windows.Forms.Clipboard]::GetText()
+        $clean = $clip -replace '\D', ''
+        if ($clean.Length -gt 48) { $clean = $clean.Substring(0, 48) }
+        $txtCID.Text = $clean
+        if ($clean.Length -eq 48) {
+            Write-Log "Đã dán CID hợp lệ (48 số): $clean" "CLEAN"
+            $grouped = Format-CIDGrouped $clean
+            Write-Log "Dạng khối: $grouped" "INFO"
+        } else {
+            Write-Log "Đã dán CID từ Clipboard: $clean (Lưu ý: CID cần đủ 48 số, hiện có $($clean.Length) số)" "WARN"
+        }
+    }
+})
+$tab2.Controls.Add($btnPasteCID); $allButtons += $btnPasteCID
+
+$btnCopyCID = New-Object System.Windows.Forms.Button
+$btnCopyCID.Text = "Copy CID"
+$btnCopyCID.Location = New-Object System.Drawing.Point(405, 100)
+$btnCopyCID.Size = New-Object System.Drawing.Size(85, 24)
+$btnCopyCID.Font = $fontSmall
+$btnCopyCID.BackColor = [System.Drawing.Color]::White
+$btnCopyCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCopyCID.Add_Click({
+    $clean = $txtCID.Text -replace '\D', ''
+    if ($clean) {
+        [System.Windows.Forms.Clipboard]::SetText($clean)
+        Write-Log "Đã sao chép CID vào Clipboard: $clean" "CLEAN"
+    } else { Write-Log "Ô CID đang trống!" "WARN" }
+})
+$tab2.Controls.Add($btnCopyCID); $allButtons += $btnCopyCID
+
 $txtCID = New-Object System.Windows.Forms.TextBox
-$txtCID.Location = New-Object System.Drawing.Point($col2, 45)
-$txtCID.Size = New-Object System.Drawing.Size(390, 28)
+$txtCID.Location = New-Object System.Drawing.Point(15, 128)
+$txtCID.Size = New-Object System.Drawing.Size(585, 28)
 $txtCID.Font = $fontCode
 $txtCID.Add_TextChanged({
     $clean = $txtCID.Text -replace '\D', ''
     if ($clean.Length -gt 48) { $clean = $clean.Substring(0, 48) }
-    if ($txtCID.Text -ne $clean) { $pos = $txtCID.SelectionStart; $txtCID.Text = $clean; $txtCID.SelectionStart = [Math]::Min($pos, $txtCID.Text.Length) }
+    if ($txtCID.Text -ne $clean) {
+        $pos = $txtCID.SelectionStart
+        $txtCID.Text = $clean
+        $txtCID.SelectionStart = [Math]::Min($pos, $txtCID.Text.Length)
+    }
 })
 $tab2.Controls.Add($txtCID)
 
-$btnAutoWinPhone = New-Object System.Windows.Forms.Button
-$btnAutoWinPhone.Text = "Auto Active Windows (1-Click)"
-$btnAutoWinPhone.Location = New-Object System.Drawing.Point(15, 90)
-$btnAutoWinPhone.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
-$btnAutoWinPhone.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50); $btnAutoWinPhone.ForeColor = [System.Drawing.Color]::White; $btnAutoWinPhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnAutoWinPhone.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnAutoWinPhone.Add_Click({ Toggle-Buttons $false; Invoke-AutoWinPhone; Toggle-Buttons $true }); $tab2.Controls.Add($btnAutoWinPhone); $allButtons += $btnAutoWinPhone
+$btnInstallCID = New-Object System.Windows.Forms.Button
+$btnInstallCID.Text = "Nạp CID (Kích Hoạt)"
+$btnInstallCID.Location = New-Object System.Drawing.Point(610, 126)
+$btnInstallCID.Size = New-Object System.Drawing.Size(205, 30)
+$btnInstallCID.Font = $fontBtn
+$btnInstallCID.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
+$btnInstallCID.ForeColor = [System.Drawing.Color]::White
+$btnInstallCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnInstallCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnInstallCID.Add_Click({ Toggle-Buttons $false; Install-TargetCID; Toggle-Buttons $true })
+$tab2.Controls.Add($btnInstallCID); $allButtons += $btnInstallCID
 
-$btnAutoOfficePhone = New-Object System.Windows.Forms.Button
-$btnAutoOfficePhone.Text = "Auto Active Office (1-Click)"
-$btnAutoOfficePhone.Location = New-Object System.Drawing.Point($col2, 90)
-$btnAutoOfficePhone.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
-$btnAutoOfficePhone.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50); $btnAutoOfficePhone.ForeColor = [System.Drawing.Color]::White; $btnAutoOfficePhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnAutoOfficePhone.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnAutoOfficePhone.Add_Click({ Toggle-Buttons $false; Invoke-AutoOfficePhone; Toggle-Buttons $true }); $tab2.Controls.Add($btnAutoOfficePhone); $allButtons += $btnAutoOfficePhone
+# --- DÒNG 4: CÁC NÚT HÀNH ĐỘNG GET CID & 1-CLICK ---
+$btnAutoGetCID = New-Object System.Windows.Forms.Button
+$btnAutoGetCID.Text = "⚡ Tự Động Get CID (API)"
+$btnAutoGetCID.Location = New-Object System.Drawing.Point(15, 168)
+$btnAutoGetCID.Size = New-Object System.Drawing.Size(255, 40)
+$btnAutoGetCID.Font = $fontBtn
+$btnAutoGetCID.BackColor = [System.Drawing.Color]::FromArgb(40, 53, 147)
+$btnAutoGetCID.ForeColor = [System.Drawing.Color]::White
+$btnAutoGetCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnAutoGetCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnAutoGetCID.Add_Click({ Toggle-Buttons $false; Invoke-AutoGetCIDFromIID; Toggle-Buttons $true })
+$tab2.Controls.Add($btnAutoGetCID); $allButtons += $btnAutoGetCID
 
-$btnGetWinIID = New-Object System.Windows.Forms.Button
-$btnGetWinIID.Text = "Lấy IID Windows (Thủ công)"
-$btnGetWinIID.Location = New-Object System.Drawing.Point(15, 145)
-$btnGetWinIID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
-$btnGetWinIID.BackColor = [System.Drawing.Color]::FromArgb(0, 131, 143); $btnGetWinIID.ForeColor = [System.Drawing.Color]::White; $btnGetWinIID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnGetWinIID.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnGetWinIID.Add_Click({ Toggle-Buttons $false; Get-WinIID; Toggle-Buttons $true }); $tab2.Controls.Add($btnGetWinIID); $allButtons += $btnGetWinIID
+# Context menu cho Web Get CID
+$menuWebCID = New-Object System.Windows.Forms.ContextMenuStrip
+$menuWebCID.Font = $fontNormal
+$menuWebCID.Items.Add("1. KhoaToanTin.com (CIDMS)").Add_Click({ Open-SpecificWebCID "https://khoatoantin.com/cid" "KhoaToanTin.com" })
+$menuWebCID.Items.Add("2. TroGiup24h.com (Trợ Giúp 24h)").Add_Click({ Open-SpecificWebCID "https://trogiup24h.com/getcid" "TroGiup24h.com" })
+$menuWebCID.Items.Add("3. GetCID.win (Tự động Quốc Tế)").Add_Click({ Open-SpecificWebCID "https://getcid.win" "GetCID.win" })
+$menuWebCID.Items.Add("4. GetCID.info").Add_Click({ Open-SpecificWebCID "https://getcid.info" "GetCID.info" })
+$menuWebCID.Items.Add("5. MSKeys.org").Add_Click({ Open-SpecificWebCID "https://mskeys.org/getcid" "MSKeys.org" })
 
-$btnGetOfficeIID = New-Object System.Windows.Forms.Button
-$btnGetOfficeIID.Text = "Lấy IID Office (Thủ công)"
-$btnGetOfficeIID.Location = New-Object System.Drawing.Point($col2, 145)
-$btnGetOfficeIID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
-$btnGetOfficeIID.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79); $btnGetOfficeIID.ForeColor = [System.Drawing.Color]::White; $btnGetOfficeIID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnGetOfficeIID.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnGetOfficeIID.Add_Click({ Toggle-Buttons $false; Get-OfficeIID; Toggle-Buttons $true }); $tab2.Controls.Add($btnGetOfficeIID); $allButtons += $btnGetOfficeIID
+$btnOpenWebCID = New-Object System.Windows.Forms.Button
+$btnOpenWebCID.Text = "🌐 Mở Web Get CID (Trợ Giúp)"
+$btnOpenWebCID.Location = New-Object System.Drawing.Point(285, 168)
+$btnOpenWebCID.Size = New-Object System.Drawing.Size(255, 40)
+$btnOpenWebCID.Font = $fontBtn
+$btnOpenWebCID.BackColor = [System.Drawing.Color]::FromArgb(230, 81, 0)
+$btnOpenWebCID.ForeColor = [System.Drawing.Color]::White
+$btnOpenWebCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnOpenWebCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnOpenWebCID.Add_Click({
+    $clean = $txtIID.Text -replace '\D', ''
+    if (-not $clean) {
+        Get-TargetIID
+        $clean = $txtIID.Text -replace '\D', ''
+    }
+    if ($clean) {
+        [System.Windows.Forms.Clipboard]::SetText($clean)
+        Write-Log "ĐÃ SAO CHÉP IID VÀO CLIPBOARD: $clean" "CLEAN"
+    }
+    $menuWebCID.Show($btnOpenWebCID, 0, $btnOpenWebCID.Height)
+})
+$tab2.Controls.Add($btnOpenWebCID); $allButtons += $btnOpenWebCID
 
-$btnInstallWinCID = New-Object System.Windows.Forms.Button
-$btnInstallWinCID.Text = "Nạp CID Windows (Thủ công)"
-$btnInstallWinCID.Location = New-Object System.Drawing.Point(15, 200)
-$btnInstallWinCID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
-$btnInstallWinCID.BackColor = [System.Drawing.Color]::FromArgb(0, 131, 143); $btnInstallWinCID.ForeColor = [System.Drawing.Color]::White; $btnInstallWinCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnInstallWinCID.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnInstallWinCID.Add_Click({ Toggle-Buttons $false; Install-WinCID; Toggle-Buttons $true }); $tab2.Controls.Add($btnInstallWinCID); $allButtons += $btnInstallWinCID
+$btnAuto1Click = New-Object System.Windows.Forms.Button
+$btnAuto1Click.Text = "🚀 Auto 1-Click (All-in-One)"
+$btnAuto1Click.Location = New-Object System.Drawing.Point(555, 168)
+$btnAuto1Click.Size = New-Object System.Drawing.Size(260, 40)
+$btnAuto1Click.Font = $fontBtn
+$btnAuto1Click.BackColor = [System.Drawing.Color]::FromArgb(27, 94, 32)
+$btnAuto1Click.ForeColor = [System.Drawing.Color]::White
+$btnAuto1Click.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnAuto1Click.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnAuto1Click.Add_Click({ Toggle-Buttons $false; Invoke-1ClickFullAutoPhone; Toggle-Buttons $true })
+$tab2.Controls.Add($btnAuto1Click); $allButtons += $btnAuto1Click
 
-$btnInstallOfficeCID = New-Object System.Windows.Forms.Button
-$btnInstallOfficeCID.Text = "Nạp CID Office (Thủ công)"
-$btnInstallOfficeCID.Location = New-Object System.Drawing.Point($col2, 200)
-$btnInstallOfficeCID.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
-$btnInstallOfficeCID.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79); $btnInstallOfficeCID.ForeColor = [System.Drawing.Color]::White; $btnInstallOfficeCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnInstallOfficeCID.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnInstallOfficeCID.Add_Click({ Toggle-Buttons $false; Install-OfficeCID; Toggle-Buttons $true }); $tab2.Controls.Add($btnInstallOfficeCID); $allButtons += $btnInstallOfficeCID
+# --- DÒNG 5: CÁC NÚT TIỆN ÍCH MỞ RỘNG ---
+$btnSavePhone = New-Object System.Windows.Forms.Button
+$btnSavePhone.Text = "💾 Lưu Key & CID Ra Desktop"
+$btnSavePhone.Location = New-Object System.Drawing.Point(15, 216)
+$btnSavePhone.Size = New-Object System.Drawing.Size(255, 36)
+$btnSavePhone.Font = $fontBtn
+$btnSavePhone.BackColor = [System.Drawing.Color]::FromArgb(69, 90, 100)
+$btnSavePhone.ForeColor = [System.Drawing.Color]::White
+$btnSavePhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnSavePhone.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnSavePhone.Add_Click({ Save-PhoneActivationBackup })
+$tab2.Controls.Add($btnSavePhone); $allButtons += $btnSavePhone
+
+$btnClearFields = New-Object System.Windows.Forms.Button
+$btnClearFields.Text = "🧹 Xóa Trắng Ô Nhập (Reset)"
+$btnClearFields.Location = New-Object System.Drawing.Point(285, 216)
+$btnClearFields.Size = New-Object System.Drawing.Size(255, 36)
+$btnClearFields.Font = $fontBtn
+$btnClearFields.BackColor = [System.Drawing.Color]::FromArgb(120, 144, 156)
+$btnClearFields.ForeColor = [System.Drawing.Color]::White
+$btnClearFields.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnClearFields.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnClearFields.Add_Click({
+    $txtIID.Text = ""
+    $txtCID.Text = ""
+    Write-Log "Đã xóa trắng các ô IID và CID trên Tab 2." "INFO"
+})
+$tab2.Controls.Add($btnClearFields); $allButtons += $btnClearFields
+
+$btnQuickKey = New-Object System.Windows.Forms.Button
+$btnQuickKey.Text = "🔑 Nạp Key Phone Mới"
+$btnQuickKey.Location = New-Object System.Drawing.Point(555, 216)
+$btnQuickKey.Size = New-Object System.Drawing.Size(260, 36)
+$btnQuickKey.Font = $fontBtn
+$btnQuickKey.BackColor = [System.Drawing.Color]::FromArgb(0, 150, 136)
+$btnQuickKey.ForeColor = [System.Drawing.Color]::White
+$btnQuickKey.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnQuickKey.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnQuickKey.Add_Click({ Show-QuickKeyDialog })
+$tab2.Controls.Add($btnQuickKey); $allButtons += $btnQuickKey
+
+# --- KHUNG HƯỚNG DẪN QUY TRÌNH (QUICK GUIDE) ---
+$pnlGuide = New-Object System.Windows.Forms.Panel
+$pnlGuide.Location = New-Object System.Drawing.Point(15, 260)
+$pnlGuide.Size = New-Object System.Drawing.Size(800, 95)
+$pnlGuide.BackColor = [System.Drawing.Color]::FromArgb(240, 244, 248)
+$pnlGuide.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$tab2.Controls.Add($pnlGuide)
+
+$lblGuideTitle = New-Object System.Windows.Forms.Label
+$lblGuideTitle.Text = "💡 HƯỚNG DẪN QUY TRÌNH KÍCH HOẠT BY PHONE (3 BƯỚC):"
+$lblGuideTitle.Location = New-Object System.Drawing.Point(10, 8)
+$lblGuideTitle.Font = $fontBtn
+$lblGuideTitle.ForeColor = [System.Drawing.Color]::FromArgb(21, 101, 192)
+$lblGuideTitle.AutoSize = $true
+$pnlGuide.Controls.Add($lblGuideTitle)
+
+$lblGuideContent = New-Object System.Windows.Forms.Label
+$lblGuideContent.Text = "• Bước 1: Chọn đối tượng (Windows/Office) -> Bấm 'Lấy IID' (hoặc 'Nạp Key Phone Mới' nếu chưa nạp Key).`r`n" +
+                        "• Bước 2: Bấm '⚡ Tự Động Get CID' hoặc '🌐 Mở Web Get CID' (IID sẽ tự copy, chỉ cần ấn Ctrl+V trên trang web).`r`n" +
+                        "• Bước 3: Sau khi nhận 48 số CID -> Bấm 'Nạp CID (Kích Hoạt)' và bấm '💾 Lưu Key & CID' ra Desktop để tái sử dụng."
+$lblGuideContent.Location = New-Object System.Drawing.Point(10, 32)
+$lblGuideContent.Size = New-Object System.Drawing.Size(775, 55)
+$lblGuideContent.Font = $fontSmall
+$lblGuideContent.ForeColor = [System.Drawing.Color]::FromArgb(50, 50, 50)
+$pnlGuide.Controls.Add($lblGuideContent)
 
 
 
@@ -1097,7 +1575,7 @@ $btnRestoreTokens.Text = "Phục Hồi Đã Chọn"
 $btnRestoreTokens.Location = New-Object System.Drawing.Point($col2, 120)
 $btnRestoreTokens.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
 $btnRestoreTokens.BackColor = [System.Drawing.Color]::FromArgb(198, 40, 40); $btnRestoreTokens.ForeColor = [System.Drawing.Color]::White; $btnRestoreTokens.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnRestoreTokens.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnRestoreTokens.Add_Click({ Toggle-Buttons $false; Invoke-RestoreTokens; Toggle-Buttons $true }); 
+$btnRestoreTokens.Add_Click({ Toggle-Buttons $false; Invoke-RestoreTokens; Toggle-Buttons $true }); $tab4.Controls.Add($btnRestoreTokens); $allButtons += $btnRestoreTokens
 # TAB 5: Thông Tin Tác Giả
 $tab5 = New-Object System.Windows.Forms.TabPage
 $tab5.Text = "5. Thông Tin"
