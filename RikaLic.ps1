@@ -91,8 +91,8 @@ $form.Controls.Add($lblLogTitle)
 $btnClearLog = New-Object System.Windows.Forms.Button
 $btnClearLog.Text = "Xóa Log"
 $btnClearLog.Font = $fontSmall
-$btnClearLog.Location = New-Object System.Drawing.Point(645, 8)
-$btnClearLog.Size = New-Object System.Drawing.Size(95, 28)
+$btnClearLog.Location = New-Object System.Drawing.Point(535, 8)
+$btnClearLog.Size = New-Object System.Drawing.Size(90, 28)
 $btnClearLog.BackColor = [System.Drawing.Color]::White
 $btnClearLog.Cursor = [System.Windows.Forms.Cursors]::Hand
 $btnClearLog.Add_Click({ $txtLog.Text = "" })
@@ -101,7 +101,7 @@ $form.Controls.Add($btnClearLog)
 $btnCopyLog = New-Object System.Windows.Forms.Button
 $btnCopyLog.Text = "Copy Log"
 $btnCopyLog.Font = $fontSmall
-$btnCopyLog.Location = New-Object System.Drawing.Point(750, 8)
+$btnCopyLog.Location = New-Object System.Drawing.Point(635, 8)
 $btnCopyLog.Size = New-Object System.Drawing.Size(95, 28)
 $btnCopyLog.BackColor = [System.Drawing.Color]::White
 $btnCopyLog.Cursor = [System.Windows.Forms.Cursors]::Hand
@@ -112,6 +112,31 @@ $btnCopyLog.Add_Click({
     }
 })
 $form.Controls.Add($btnCopyLog)
+
+$btnSaveLog = New-Object System.Windows.Forms.Button
+$btnSaveLog.Text = "Lưu Log (.txt)"
+$btnSaveLog.Font = $fontSmall
+$btnSaveLog.Location = New-Object System.Drawing.Point(740, 8)
+$btnSaveLog.Size = New-Object System.Drawing.Size(120, 28)
+$btnSaveLog.BackColor = [System.Drawing.Color]::White
+$btnSaveLog.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnSaveLog.Add_Click({
+    if (-not $txtLog.Text -or $txtLog.Text.Trim() -eq "") {
+        [System.Windows.Forms.MessageBox]::Show("Nhật ký đang trống, không có nội dung để lưu!", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+        return
+    }
+    try {
+        $desktopPath = [Environment]::GetFolderPath("Desktop")
+        $timestamp = (Get-Date).ToString("yyyyMMdd_HHmmss")
+        $logFile = Join-Path $desktopPath "BKC_Lic_Log_$timestamp.txt"
+        [System.IO.File]::WriteAllText($logFile, $txtLog.Text, [System.Text.Encoding]::UTF8)
+        Write-Log "Đã lưu nhật ký ra Desktop: $logFile" "CLEAN"
+        [System.Windows.Forms.MessageBox]::Show("Đã lưu nhật ký thành công ra màn hình Desktop:`n$logFile", "Lưu Log thành công", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+    } catch {
+        Write-Log "Lỗi khi lưu log ra Desktop: $($_.Exception.Message)" "CRIT"
+    }
+})
+$form.Controls.Add($btnSaveLog)
 
 $txtLog = New-Object System.Windows.Forms.TextBox
 $txtLog.Multiline = $true
@@ -274,6 +299,196 @@ function Clear-OfficeLicenses {
     }
     if ($count -eq 0) { Write-Log "Không tìm thấy Key Office nào cần gỡ." "INFO" }
     Write-Log "Hoàn tất dọn dẹp bản quyền Office!" "CLEAN"
+}
+
+function Invoke-ConvertOfficeC2RToVL {
+    $txtLog.Text = ""
+    Write-Log ">>> BẮT ĐẦU CHUYỂN ĐỔI GIẤY PHÉP OFFICE RETAIL (C2R) SANG VOLUME (VL)..." "INFO"
+
+    # 1. Tìm thư mục Licenses16
+    $licensesDir = $null
+    $possiblePaths = @(
+        "$env:ProgramFiles\Microsoft Office\root\Licenses16",
+        "${env:ProgramFiles(x86)}\Microsoft Office\root\Licenses16"
+    )
+    foreach ($p in $possiblePaths) {
+        if (Test-Path $p) {
+            $licensesDir = $p
+            break
+        }
+    }
+
+    if (-not $licensesDir) {
+        $regPath = "HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration"
+        if (Test-Path $regPath) {
+            $installPath = (Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue).InstallationPath
+            if ($installPath -and (Test-Path (Join-Path $installPath "root\Licenses16"))) {
+                $licensesDir = Join-Path $installPath "root\Licenses16"
+            }
+        }
+    }
+
+    if (-not $licensesDir) {
+        Write-Log "Không tìm thấy thư mục giấy phép Office (root\Licenses16). Máy chưa cài Office Click-to-Run (C2R)." "CRIT"
+        [System.Windows.Forms.MessageBox]::Show(
+            "Không tìm thấy thư mục giấy phép Office (root\Licenses16).`n`nVui lòng đảm bảo Office đã được cài đặt trước khi thực hiện chuyển đổi.",
+            "Lỗi",
+            0,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
+        return
+    }
+
+    Write-Log "Tìm thấy thư mục giấy phép: $licensesDir" "INFO"
+
+    # 2. Xác định các phiên bản Office hỗ trợ
+    $has2024 = (Test-Path (Join-Path $licensesDir "ProPlus2024VL_KMS_Client_AE-ppd.xrm-ms"))
+    $has2021 = (Test-Path (Join-Path $licensesDir "ProPlus2021VL_KMS_Client_AE-ppd.xrm-ms"))
+    $has2019 = (Test-Path (Join-Path $licensesDir "ProPlus2019VL_KMS_Client_AE-ppd.xrm-ms"))
+    $has2016 = (Test-Path (Join-Path $licensesDir "ProPlusVL_KMS_Client-ppd.xrm-ms"))
+
+    $targetVersion = "2021"
+    $targetKey = "FXYTK-NJJ8C-GB6DW-3DYQT-6F7TH"
+    $licensePattern = "*2021VL_KMS_Client*.xrm-ms"
+
+    if ($has2024) {
+        $targetVersion = "2024"
+        $targetKey = "2TDPW-NDQH8-F9DHT-8XTT4-3P7M4"
+        $licensePattern = "*2024VL_KMS_Client*.xrm-ms"
+    } elseif ($has2021) {
+        $targetVersion = "2021"
+        $targetKey = "FXYTK-NJJ8C-GB6DW-3DYQT-6F7TH"
+        $licensePattern = "*2021VL_KMS_Client*.xrm-ms"
+    } elseif ($has2019) {
+        $targetVersion = "2019"
+        $targetKey = "NMMKJ-6RK4F-KMJVX-8D9MJ-6MWKP"
+        $licensePattern = "*2019VL_KMS_Client*.xrm-ms"
+    } elseif ($has2016) {
+        $targetVersion = "2016"
+        $targetKey = "XQNVK-8JYDB-WJ9W3-YJ8YR-WFG99"
+        $licensePattern = "*ProPlusVL_KMS_Client*.xrm-ms"
+    }
+
+    $confirm = [System.Windows.Forms.MessageBox]::Show(
+        "Hệ thống phát hiện bộ cài Office hỗ trợ chuyển đổi sang: Office $targetVersion ProPlus Volume (VL).`n`n" +
+        "Thao tác này sẽ nạp chứng chỉ giấy phép Volume License và nạp khóa Generic KMS GVLK ($targetKey).`n`n" +
+        "Bạn có muốn tiếp tục?",
+        "Xác nhận chuyển đổi C2R sang VL",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+    # 3. Dừng các tiến trình Office
+    Write-Log "Đang đóng các tiến trình Office để tránh xung đột..." "INFO"
+    $procs = @("winword", "excel", "powerpnt", "outlook", "msaccess", "onenote", "mspub")
+    foreach ($p in $procs) { Stop-Process -Name $p -Force -ErrorAction SilentlyContinue }
+
+    # 4. Nạp các tệp giấy phép Volume (.xrm-ms) qua slmgr /ilc
+    Write-Log "Đang cài đặt chứng chỉ giấy phép Volume ($licensePattern)..." "INFO"
+    $licFiles = Get-ChildItem -Path $licensesDir -Filter $licensePattern -ErrorAction SilentlyContinue
+    $licCount = 0
+    foreach ($lf in $licFiles) {
+        Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ilc `"$($lf.FullName)`"" | Out-Null
+        $licCount++
+        [System.Windows.Forms.Application]::DoEvents()
+    }
+    Write-Log "-> Đã nạp thành công $licCount tệp giấy phép Volume vào hệ thống!" "CLEAN"
+
+    # 5. Dọn dẹp key Grace / Retail cũ qua OSPP
+    $ospp = Get-OsppPath
+    if ($ospp) {
+        Write-Log "Đang dọn dẹp các key tạm / Grace cũ qua OSPP..." "INFO"
+        $output = Invoke-CScript $ospp "/dstatus"
+        foreach ($line in $output) {
+            if ($line -match "Last 5 characters of installed product key:\s*([A-Z0-9]{5})") {
+                $oldKey = $matches[1].Trim()
+                if (-not $targetKey.EndsWith($oldKey)) {
+                    Invoke-CScript $ospp "/unpkey:$oldKey" | Out-Null
+                    Write-Log "-> Đã gỡ key Retail/Grace cũ: $oldKey" "INFO"
+                }
+            }
+        }
+
+        # 6. Nạp key GVLK
+        Write-Log "Đang nạp Generic KMS Client Key (GVLK): $targetKey..." "INFO"
+        $resInp = Invoke-CScript $ospp "/inpkey:$targetKey"
+        foreach ($r in $resInp) {
+            if ($r -match "Product key installation successful") {
+                Write-Log "-> Nạp khóa GVLK thành công!" "CLEAN"
+            }
+        }
+    } else {
+        Write-Log "Đang nạp key GVLK qua slmgr: $targetKey..." "INFO"
+        Invoke-CScript "$env:SystemRoot\System32\slmgr.vbs" "/ipk $targetKey" | Out-Null
+    }
+
+    # 7. Khởi động lại dịch vụ bản quyền
+    Restart-LicensingServices
+
+    Write-Log "==========================================================" "CLEAN"
+    Write-Log ">>> ĐÃ CHUYỂN ĐỔI OFFICE THÀNH CÔNG SANG VOLUME (VL $targetVersion)!" "CLEAN"
+    Write-Log "==========================================================" "CLEAN"
+    Write-Log "Bây giờ bạn có thể kích hoạt bằng Key KMS hoặc nạp MAK tại Tab 1 hoặc Tab 2." "INFO"
+
+    [System.Windows.Forms.MessageBox]::Show(
+        "Đã chuyển đổi thành công giấy phép Office sang Volume License (Office $targetVersion ProPlus VL)!`n`n" +
+        "Office của bạn hiện đã sẵn sàng để kích hoạt qua KMS hoặc nạp bản quyền Volume.",
+        "Chuyển đổi thành công",
+        0,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    )
+}
+
+function Invoke-ToggleDefenderUpdate {
+    $choice = [System.Windows.Forms.MessageBox]::Show(
+        "TÙY CHỌN BẬT / TẮT WINDOWS DEFENDER & WINDOWS UPDATE:`n`n" +
+        " • Bấm [YES] để: TẮT TẠM THỜI (Real-time Protection & Update service)`n" +
+        "   (Phù hợp khi cần tối ưu máy, sửa lỗi bản quyền hoặc cài đặt phần mềm nhanh chóng)`n`n" +
+        " • Bấm [NO] để: BẬT LẠI HOÀN TOÀN (Kích hoạt lại bảo mật Defender & Update)`n`n" +
+        " • Bấm [CANCEL] để hủy bỏ.",
+        "Quản lý Defender & Windows Update",
+        [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+
+    if ($choice -eq [System.Windows.Forms.DialogResult]::Cancel) { return }
+
+    if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
+        Write-Log ">>> ĐANG TẮT TẠM THỜI DEFENDER & WINDOWS UPDATE..." "WARN"
+        try {
+            Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+            Write-Log "-> Đã tắt Real-time Protection của Windows Defender." "CLEAN"
+        } catch {
+            Write-Log "Lỗi tắt Defender: $($_.Exception.Message)" "WARN"
+        }
+        try {
+            Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+            Set-Service -Name wuauserv -StartupType Disabled -ErrorAction SilentlyContinue
+            Write-Log "-> Đã tạm dừng và vô hiệu hóa dịch vụ Windows Update (wuauserv)." "CLEAN"
+        } catch {
+            Write-Log "Lỗi dừng Windows Update: $($_.Exception.Message)" "WARN"
+        }
+        Write-Log "Hoàn tất tắt tạm thời Defender & Update." "CLEAN"
+        [System.Windows.Forms.MessageBox]::Show("Đã tắt tạm thời Real-time Protection và Windows Update!`n`nKhi hoàn thành công việc, vui lòng bật lại để đảm bảo an toàn.", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+    } elseif ($choice -eq [System.Windows.Forms.DialogResult]::No) {
+        Write-Log ">>> ĐANG BẬT LẠI DEFENDER & WINDOWS UPDATE..." "INFO"
+        try {
+            Set-MpPreference -DisableRealtimeMonitoring $false -ErrorAction SilentlyContinue
+            Write-Log "-> Đã kích hoạt lại Real-time Protection của Windows Defender." "CLEAN"
+        } catch {
+            Write-Log "Lỗi bật Defender: $($_.Exception.Message)" "WARN"
+        }
+        try {
+            Set-Service -Name wuauserv -StartupType Manual -ErrorAction SilentlyContinue
+            Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+            Write-Log "-> Đã khởi động lại dịch vụ Windows Update (wuauserv)." "CLEAN"
+        } catch {
+            Write-Log "Lỗi bật Windows Update: $($_.Exception.Message)" "WARN"
+        }
+        Write-Log "Hoàn tất kích hoạt lại Defender & Update." "CLEAN"
+        [System.Windows.Forms.MessageBox]::Show("Đã bật lại đầy đủ Windows Defender và Windows Update!", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+    }
 }
 
 function Show-OfficeUninstaller {
@@ -2096,13 +2311,13 @@ function Show-ArtCraftStoreDialog {
 # =========================================================================
 
 $softwareCatalog = @(
-    # --- 1. THIẾT YẾU (ESSENTIAL) ---
+    # --- 1. TRÌNH DUYỆT & INTERNET (11 ỨNG DỤNG) ---
     @{
         Name = "Google Chrome"
         Size = "144 MB"
         MB = 144
-        Category = "Thiết yếu"
-        AltCategory = "Internet"
+        Category = "Internet"
+        IsEssential = $true
         Desc = "Trình duyệt web phổ biến nhất thế giới"
         WingetId = "Google.Chrome"
         CheckReg = "Google Chrome"
@@ -2112,169 +2327,25 @@ $softwareCatalog = @(
         SilentArgs = "/silent /install"
     },
     @{
-        Name = "Zalo PC"
-        Size = "169 MB"
-        MB = 169
-        Category = "Thiết yếu"
-        AltCategory = "Internet"
-        Desc = "Ứng dụng nhắn tin và gọi điện văn phòng số 1 Việt Nam"
-        WingetId = "VNG.Zalo"
-        CheckReg = "Zalo"
-        CheckPath = "$env:LOCALAPPDATA\Programs\Zalo\Zalo.exe"
-        Url = "https://res-zalo.zadn.vn/download/ZaloSetup.exe"
-        FileName = "ZaloSetup.exe"
-        SilentArgs = "/S"
+        Name = "Cốc Cốc"
+        Size = "115 MB"
+        MB = 115
+        Category = "Internet"
+        IsEssential = $true
+        Desc = "Trình duyệt web tối ưu cho người Việt (tải video, ghim web, tra từ điển)"
+        WingetId = "CocCoc.CocCoc"
+        CheckReg = "CocCoc"
+        CheckPath = "$env:LOCALAPPDATA\CocCoc\Browser\Application\browser.exe"
+        Url = "https://corom.vn/coccoc_vi_machine.exe"
+        FileName = "coccoc_vi_machine.exe"
+        SilentArgs = "/silent /install"
     },
-    @{
-        Name = "UltraViewer"
-        Size = "4 MB"
-        MB = 4
-        Category = "Thiết yếu"
-        AltCategory = "Internet"
-        Desc = "Phần mềm điều khiển máy tính từ xa hỗ trợ kỹ thuật"
-        WingetId = "UltraViewer.UltraViewer"
-        CheckReg = "UltraViewer"
-        CheckPath = "$env:ProgramFiles(x86)\UltraViewer\UltraViewer_Desktop.exe"
-        Url = "https://ultraviewer.net/vi/UltraViewer_setup_6.6_vi.exe"
-        FileName = "UltraViewer_setup.exe"
-        SilentArgs = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"
-    },
-    @{
-        Name = "7-Zip"
-        Size = "2 MB"
-        MB = 2
-        Category = "Thiết yếu"
-        AltCategory = "Tiện ích"
-        Desc = "Trình nén và giải nén dữ liệu mã nguồn mở siêu tốc"
-        WingetId = "7zip.7zip"
-        CheckReg = "7-Zip"
-        CheckPath = "$env:ProgramFiles\7-Zip\7zFM.exe"
-        Url = "https://www.7-zip.org/a/7z2408-x64.exe"
-        FileName = "7z_setup.exe"
-        SilentArgs = "/S"
-    },
-    @{
-        Name = "WinRAR"
-        Size = "4 MB"
-        MB = 4
-        Category = "Thiết yếu"
-        AltCategory = "Tiện ích"
-        Desc = "Trình nén và giải nén file RAR/ZIP kinh điển"
-        WingetId = "RARLab.WinRAR"
-        CheckReg = "WinRAR"
-        CheckPath = "$env:ProgramFiles\WinRAR\WinRAR.exe"
-        Url = "https://www.rarlab.com/rar/winrar-x64-701.exe"
-        FileName = "winrar-x64.exe"
-        SilentArgs = "/S"
-    },
-    @{
-        Name = "Foxit PDF Reader"
-        Size = "376 MB"
-        MB = 376
-        Category = "Thiết yếu"
-        AltCategory = "Văn phòng"
-        Desc = "Trình đọc và ghi chú tài liệu PDF văn phòng chuyên nghiệp"
-        WingetId = "Foxit.FoxitReader"
-        CheckReg = "Foxit PDF Reader"
-        CheckPath = "$env:ProgramFiles(x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe"
-        Url = "https://cdn01.foxitsoftware.com/product/reader/desktop/win/12.1.3/FoxitPDFReader1213_enu_Setup_Prom.exe"
-        FileName = "FoxitReader_Setup.exe"
-        SilentArgs = "/VERYSILENT /NORESTART"
-    },
-    @{
-        Name = "SumatraPDF"
-        Size = "11 MB"
-        MB = 11
-        Category = "Thiết yếu"
-        AltCategory = "Văn phòng"
-        Desc = "Trình đọc PDF siêu nhẹ, khởi động tức thì"
-        WingetId = "Zeniko.SumatraPDF"
-        CheckReg = "SumatraPDF"
-        CheckPath = "$env:LOCALAPPDATA\SumatraPDF\SumatraPDF.exe"
-        Url = "https://www.sumatrapdfreader.org/dl/SumatraPDF-3.5.2-64-install.exe"
-        FileName = "SumatraPDF-install.exe"
-        SilentArgs = "-s"
-    },
-    @{
-        Name = "VLC Media Player"
-        Size = "44 MB"
-        MB = 44
-        Category = "Thiết yếu"
-        AltCategory = "Tiện ích"
-        Desc = "Trình phát video và âm thanh đa năng mọi định dạng"
-        WingetId = "VideoLAN.VLC"
-        CheckReg = "VLC media player"
-        CheckPath = "$env:ProgramFiles\VideoLAN\VLC\vlc.exe"
-        Url = "https://get.videolan.org/vlc/3.0.21/win64/vlc-3.0.21-win64.exe"
-        FileName = "vlc-setup.exe"
-        SilentArgs = "/S"
-    },
-    @{
-        Name = "K-Lite Codec Pack Standard"
-        Size = "39 MB"
-        MB = 39
-        Category = "Thiết yếu"
-        AltCategory = "Tiện ích"
-        Desc = "Bộ giải mã codec toàn diện cho mọi video và phim ảnh"
-        WingetId = "CodecGuide.K-LiteCodecPack.Standard"
-        CheckReg = "K-Lite Codec Pack"
-        CheckPath = "$env:ProgramFiles(x86)\K-Lite Codec Pack\MPC-HC64\mpc-hc64.exe"
-        Url = "https://files3.codecguide.com/K-Lite_Codec_Pack_1860_Standard.exe"
-        FileName = "klcp_standard.exe"
-        SilentArgs = "/verysilent"
-    },
-    @{
-        Name = "Unikey"
-        Size = "1 MB"
-        MB = 1
-        Category = "Thiết yếu"
-        AltCategory = "Văn phòng"
-        Desc = "Bộ gõ tiếng Việt chuẩn quốc gia gọn nhẹ nhất"
-        WingetId = ""
-        CheckReg = "UniKey"
-        CheckPath = "$env:ProgramFiles\UniKey\UniKeyNT.exe"
-        CheckProc = "UniKeyNT"
-        Url = "https://www.unikey.org/assets/release/unikey43RC5-200929-win64.zip"
-        FileName = "unikey43RC5-win64.zip"
-        IsZip = $true
-        InstallSubDir = "UniKey"
-    },
-    @{
-        Name = "EVKey"
-        Size = "1 MB"
-        MB = 1
-        Category = "Thiết yếu"
-        AltCategory = "Văn phòng"
-        Desc = "Bộ gõ tiếng Việt hiện đại chống kẹt phím trên trình duyệt"
-        WingetId = ""
-        CheckReg = "EVKey"
-        CheckPath = "$env:ProgramFiles\EVKey\EVKey64.exe"
-        CheckProc = "EVKey64"
-        Url = "https://github.com/lamquangminh/EVKey/releases/download/v5.4.7/EVKeySetup.exe"
-        FileName = "EVKeySetup.exe"
-        SilentArgs = "/VERYSILENT"
-    },
-    @{
-        Name = "ONLYOFFICE Desktop Editors"
-        Size = "206 MB"
-        MB = 206
-        Category = "Thiết yếu"
-        AltCategory = "Văn phòng"
-        Desc = "Bộ ứng dụng văn phòng tương thích 100% Microsoft Office (Word, Excel, PPT)"
-        WingetId = "ONLYOFFICE.DesktopEditors"
-        CheckReg = "ONLYOFFICE Desktop Editors"
-        CheckPath = "$env:ProgramFiles\ONLYOFFICE\DesktopEditors\DesktopEditors.exe"
-        Url = "https://github.com/ONLYOFFICE/DesktopEditors/releases/latest/download/DesktopEditors_x64.exe"
-        FileName = "DesktopEditors_x64.exe"
-        SilentArgs = "/VERYSILENT"
-    },
-
-    # --- 2. INTERNET ---
     @{
         Name = "Mozilla Firefox"
         Size = "83 MB"
         MB = 83
         Category = "Internet"
+        IsEssential = $false
         Desc = "Trình duyệt web bảo mật cao và tôn trọng quyền riêng tư"
         WingetId = "Mozilla.Firefox"
         CheckReg = "Mozilla Firefox"
@@ -2288,6 +2359,7 @@ $softwareCatalog = @(
         Size = "1 MB"
         MB = 1
         Category = "Internet"
+        IsEssential = $false
         Desc = "Trình duyệt chặn quảng cáo và bảo mật dữ liệu siêu nhanh"
         WingetId = "Brave.Brave"
         CheckReg = "Brave"
@@ -2297,10 +2369,25 @@ $softwareCatalog = @(
         SilentArgs = "/silent /install"
     },
     @{
+        Name = "Zalo PC"
+        Size = "169 MB"
+        MB = 169
+        Category = "Internet"
+        IsEssential = $true
+        Desc = "Ứng dụng nhắn tin và gọi điện văn phòng số 1 Việt Nam"
+        WingetId = "VNGCorp.Zalo"
+        CheckReg = "Zalo"
+        CheckPath = "$env:LOCALAPPDATA\Programs\Zalo\Zalo.exe"
+        Url = "https://res-zalo.zadn.vn/download/ZaloSetup.exe"
+        FileName = "ZaloSetup.exe"
+        SilentArgs = "/S"
+    },
+    @{
         Name = "Telegram Desktop"
         Size = "57 MB"
         MB = 57
         Category = "Internet"
+        IsEssential = $false
         Desc = "Ứng dụng nhắn tin bảo mật, lưu trữ file không giới hạn"
         WingetId = "Telegram.TelegramDesktop"
         CheckReg = "Telegram Desktop"
@@ -2314,6 +2401,7 @@ $softwareCatalog = @(
         Size = "154 MB"
         MB = 154
         Category = "Internet"
+        IsEssential = $false
         Desc = "Nền tảng giao tiếp bằng giọng nói, video và văn bản cộng đồng"
         WingetId = "Discord.Discord"
         CheckReg = "Discord"
@@ -2323,12 +2411,27 @@ $softwareCatalog = @(
         SilentArgs = "/s"
     },
     @{
+        Name = "UltraViewer"
+        Size = "4 MB"
+        MB = 4
+        Category = "Internet"
+        IsEssential = $true
+        Desc = "Phần mềm điều khiển máy tính từ xa hỗ trợ kỹ thuật"
+        WingetId = "DucFabulous.UltraViewer"
+        CheckReg = "UltraViewer"
+        CheckPath = "$env:ProgramFiles(x86)\UltraViewer\UltraViewer_Desktop.exe"
+        Url = "https://ultraviewer.net/vi/UltraViewer_setup_6.6_vi.exe"
+        FileName = "UltraViewer_setup.exe"
+        SilentArgs = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"
+    },
+    @{
         Name = "AnyDesk"
         Size = "8 MB"
         MB = 8
         Category = "Internet"
+        IsEssential = $true
         Desc = "Phần mềm điều khiển máy tính từ xa siêu nhẹ và ổn định"
-        WingetId = "AnyDeskSoftwareGmbH.AnyDesk"
+        WingetId = "AnyDesk.AnyDesk"
         CheckReg = "AnyDesk"
         CheckPath = "$env:ProgramFiles(x86)\AnyDesk\AnyDesk.exe"
         Url = "https://download.anydesk.com/AnyDesk.exe"
@@ -2340,6 +2443,7 @@ $softwareCatalog = @(
         Size = "77 MB"
         MB = 77
         Category = "Internet"
+        IsEssential = $false
         Desc = "Giải pháp kết nối và hỗ trợ từ xa toàn cầu"
         WingetId = "TeamViewer.TeamViewer"
         CheckReg = "TeamViewer"
@@ -2353,6 +2457,7 @@ $softwareCatalog = @(
         Size = "25 MB"
         MB = 25
         Category = "Internet"
+        IsEssential = $false
         Desc = "Phần mềm điều khiển từ xa mã nguồn mở viết bằng Rust"
         WingetId = "RustDesk.RustDesk"
         CheckReg = "RustDesk"
@@ -2362,13 +2467,100 @@ $softwareCatalog = @(
         SilentArgs = "--silent-install"
     },
 
-    # --- 3. TIỆN ÍCH & VĂN PHÒNG ---
+    # --- 2. VĂN PHÒNG & TÀI LIỆU (7 ỨNG DỤNG) ---
+    @{
+        Name = "Unikey"
+        Size = "1 MB"
+        MB = 1
+        Category = "Văn phòng"
+        IsEssential = $true
+        Desc = "Bộ gõ tiếng Việt chuẩn quốc gia gọn nhẹ nhất"
+        WingetId = "UniKey.UniKey"
+        CheckReg = "UniKey"
+        CheckPath = "$env:ProgramFiles\UniKey\UniKeyNT.exe"
+        CheckProc = "UniKeyNT"
+        Url = "https://www.unikey.org/assets/release/unikey43RC5-200929-win64.zip"
+        FileName = "unikey43RC5-win64.zip"
+        IsZip = $true
+        InstallSubDir = "UniKey"
+    },
+    @{
+        Name = "EVKey"
+        Size = "1 MB"
+        MB = 1
+        Category = "Văn phòng"
+        IsEssential = $true
+        Desc = "Bộ gõ tiếng Việt hiện đại chống kẹt phím trên trình duyệt"
+        WingetId = "lamquangminh.EVKey"
+        CheckReg = "EVKey"
+        CheckPath = "$env:ProgramFiles\EVKey\EVKey64.exe"
+        CheckProc = "EVKey64"
+        Url = "https://github.com/lamquangminh/EVKey/releases/download/v5.4.7/EVKeySetup.exe"
+        FileName = "EVKeySetup.exe"
+        SilentArgs = "/VERYSILENT"
+    },
+    @{
+        Name = "Foxit PDF Reader"
+        Size = "376 MB"
+        MB = 376
+        Category = "Văn phòng"
+        IsEssential = $true
+        Desc = "Trình đọc và ghi chú tài liệu PDF văn phòng chuyên nghiệp"
+        WingetId = "Foxit.FoxitReader"
+        CheckReg = "Foxit PDF Reader"
+        CheckPath = "$env:ProgramFiles(x86)\Foxit Software\Foxit PDF Reader\FoxitPDFReader.exe"
+        Url = "https://cdn01.foxitsoftware.com/product/reader/desktop/win/12.1.3/FoxitPDFReader1213_enu_Setup_Prom.exe"
+        FileName = "FoxitReader_Setup.exe"
+        SilentArgs = "/VERYSILENT /NORESTART"
+    },
+    @{
+        Name = "SumatraPDF"
+        Size = "11 MB"
+        MB = 11
+        Category = "Văn phòng"
+        IsEssential = $false
+        Desc = "Trình đọc PDF siêu nhẹ, khởi động tức thì"
+        WingetId = "SumatraPDF.SumatraPDF"
+        CheckReg = "SumatraPDF"
+        CheckPath = "$env:LOCALAPPDATA\SumatraPDF\SumatraPDF.exe"
+        Url = "https://www.sumatrapdfreader.org/dl/SumatraPDF-3.5.2-64-install.exe"
+        FileName = "SumatraPDF-install.exe"
+        SilentArgs = "-s"
+    },
+    @{
+        Name = "Adobe Acrobat Reader"
+        Size = "350 MB"
+        MB = 350
+        Category = "Văn phòng"
+        IsEssential = $false
+        Desc = "Trình đọc và xử lý file PDF tiêu chuẩn toàn cầu của Adobe"
+        WingetId = "Adobe.Acrobat.Reader.64-bit"
+        CheckReg = "Adobe Acrobat"
+        CheckPath = "$env:ProgramFiles\Adobe\Acrobat DC\Acrobat\Acrobat.exe"
+        Url = "https://admdownload.adobe.com/bin/live/readerdc64_ha_crd_install.exe"
+        FileName = "readerdc64_install.exe"
+        SilentArgs = "/sAll /rs /msi EULA_ACCEPT=YES"
+    },
+    @{
+        Name = "ONLYOFFICE Desktop Editors"
+        Size = "206 MB"
+        MB = 206
+        Category = "Văn phòng"
+        IsEssential = $false
+        Desc = "Bộ ứng dụng văn phòng tương thích 100% Microsoft Office (Word, Excel, PPT)"
+        WingetId = "ONLYOFFICE.DesktopEditors"
+        CheckReg = "ONLYOFFICE Desktop Editors"
+        CheckPath = "$env:ProgramFiles\ONLYOFFICE\DesktopEditors\DesktopEditors.exe"
+        Url = "https://github.com/ONLYOFFICE/DesktopEditors/releases/latest/download/DesktopEditors_x64.exe"
+        FileName = "DesktopEditors_x64.exe"
+        SilentArgs = "/VERYSILENT"
+    },
     @{
         Name = "Notepad++"
         Size = "5 MB"
         MB = 5
-        Category = "Tiện ích"
-        AltCategory = "Văn phòng"
+        Category = "Văn phòng"
+        IsEssential = $false
         Desc = "Trình soạn thảo văn bản và mã nguồn đa năng nhẹ nhàng"
         WingetId = "Notepad++.Notepad++"
         CheckReg = "Notepad++"
@@ -2377,24 +2569,70 @@ $softwareCatalog = @(
         FileName = "npp_setup.exe"
         SilentArgs = "/S"
     },
+
+    # --- 3. TIỆN ÍCH & ĐỒ HỌA MEDIA (10 ỨNG DỤNG) ---
     @{
-        Name = "Visual Studio Code"
-        Size = "95 MB"
-        MB = 95
+        Name = "7-Zip"
+        Size = "2 MB"
+        MB = 2
         Category = "Tiện ích"
-        Desc = "Trình biên tập code hàng đầu của Microsoft cho lập trình viên"
-        WingetId = "Microsoft.VisualStudioCode"
-        CheckReg = "Visual Studio Code"
-        CheckPath = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe"
-        Url = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
-        FileName = "VSCodeSetup-x64.exe"
-        SilentArgs = "/VERYSILENT /MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders"
+        IsEssential = $true
+        Desc = "Trình nén và giải nén dữ liệu mã nguồn mở siêu tốc"
+        WingetId = "7zip.7zip"
+        CheckReg = "7-Zip"
+        CheckPath = "$env:ProgramFiles\7-Zip\7zFM.exe"
+        Url = "https://www.7-zip.org/a/7z2408-x64.exe"
+        FileName = "7z_setup.exe"
+        SilentArgs = "/S"
+    },
+    @{
+        Name = "WinRAR"
+        Size = "4 MB"
+        MB = 4
+        Category = "Tiện ích"
+        IsEssential = $true
+        Desc = "Trình nén và giải nén file RAR/ZIP kinh điển"
+        WingetId = "RARLab.WinRAR"
+        CheckReg = "WinRAR"
+        CheckPath = "$env:ProgramFiles\WinRAR\WinRAR.exe"
+        Url = "https://www.rarlab.com/rar/winrar-x64-701.exe"
+        FileName = "winrar-x64.exe"
+        SilentArgs = "/S"
+    },
+    @{
+        Name = "VLC Media Player"
+        Size = "44 MB"
+        MB = 44
+        Category = "Tiện ích"
+        IsEssential = $true
+        Desc = "Trình phát video và âm thanh đa năng mọi định dạng"
+        WingetId = "VideoLAN.VLC"
+        CheckReg = "VLC media player"
+        CheckPath = "$env:ProgramFiles\VideoLAN\VLC\vlc.exe"
+        Url = "https://get.videolan.org/vlc/3.0.21/win64/vlc-3.0.21-win64.exe"
+        FileName = "vlc-setup.exe"
+        SilentArgs = "/S"
+    },
+    @{
+        Name = "K-Lite Codec Pack Standard"
+        Size = "39 MB"
+        MB = 39
+        Category = "Tiện ích"
+        IsEssential = $false
+        Desc = "Bộ giải mã codec toàn diện cho mọi video và phim ảnh"
+        WingetId = "CodecGuide.K-LiteCodecPack.Standard"
+        CheckReg = "K-Lite Codec Pack"
+        CheckPath = "$env:ProgramFiles(x86)\K-Lite Codec Pack\MPC-HC64\mpc-hc64.exe"
+        Url = "https://files3.codecguide.com/K-Lite_Codec_Pack_1860_Standard.exe"
+        FileName = "klcp_standard.exe"
+        SilentArgs = "/verysilent"
     },
     @{
         Name = "Everything (Voidtools)"
         Size = "2 MB"
         MB = 2
         Category = "Tiện ích"
+        IsEssential = $false
         Desc = "Công cụ tìm kiếm file và folder theo thời gian thực siêu tốc"
         WingetId = "voidtools.Everything"
         CheckReg = "Everything"
@@ -2408,6 +2646,7 @@ $softwareCatalog = @(
         Size = "2 MB"
         MB = 2
         Category = "Tiện ích"
+        IsEssential = $false
         Desc = "Công cụ định dạng và tạo USB Boot cứu hộ cài Windows"
         WingetId = "Rufus.Rufus"
         CheckReg = "Rufus"
@@ -2417,13 +2656,70 @@ $softwareCatalog = @(
         SilentArgs = ""
         IsPortable = $true
     },
+    @{
+        Name = "Visual Studio Code"
+        Size = "95 MB"
+        MB = 95
+        Category = "Tiện ích"
+        IsEssential = $false
+        Desc = "Trình biên tập code hàng đầu của Microsoft cho lập trình viên"
+        WingetId = "Microsoft.VisualStudioCode"
+        CheckReg = "Visual Studio Code"
+        CheckPath = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe"
+        Url = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
+        FileName = "VSCodeSetup-x64.exe"
+        SilentArgs = "/VERYSILENT /MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders"
+    },
+    @{
+        Name = "CrystalDiskInfo"
+        Size = "6 MB"
+        MB = 6
+        Category = "Tiện ích"
+        IsEssential = $false
+        Desc = "Kiểm tra sức khỏe, nhiệt độ và số giờ chạy của ổ cứng SSD/HDD"
+        WingetId = "CrystalDewWorld.CrystalDiskInfo"
+        CheckReg = "CrystalDiskInfo"
+        CheckPath = "$env:ProgramFiles\CrystalDiskInfo\DiskInfo64.exe"
+        Url = "https://sourceforge.net/projects/crystaldiskinfo/files/9.9.4/CrystalDiskInfo9_9_4.exe/download"
+        FileName = "CrystalDiskInfo_Setup.exe"
+        SilentArgs = "/VERYSILENT"
+    },
+    @{
+        Name = "CPU-Z"
+        Size = "3 MB"
+        MB = 3
+        Category = "Tiện ích"
+        IsEssential = $false
+        Desc = "Xem thông tin chi tiết phần cứng CPU, Mainboard, RAM và Card đồ họa"
+        WingetId = "CPUID.CPU-Z"
+        CheckReg = "CPUID CPU-Z"
+        CheckPath = "$env:ProgramFiles\CPUID\CPU-Z\cpuz.exe"
+        Url = "https://download.cpuid.com/cpu-z/cpu-z_3.02-en.exe"
+        FileName = "cpuz_setup.exe"
+        SilentArgs = "/VERYSILENT"
+    },
+    @{
+        Name = "FastStone Capture"
+        Size = "7 MB"
+        MB = 7
+        Category = "Tiện ích"
+        IsEssential = $false
+        Desc = "Công cụ chụp ảnh màn hình, quay video và đo kích thước pixel siêu nhẹ"
+        WingetId = "FastStone.Capture"
+        CheckReg = "FastStone Capture"
+        CheckPath = "$env:ProgramFiles(x86)\FastStone Capture\FSCapture.exe"
+        Url = "https://www.faststonesoft.net/DN/FSCaptureSetup113.exe"
+        FileName = "FSCaptureSetup.exe"
+        SilentArgs = "/S"
+    },
 
-    # --- 4. HỆ THỐNG & RUNTIMES ---
+    # --- 4. HỆ THỐNG & RUNTIMES (6 ỨNG DỤNG) ---
     @{
         Name = "Visual C++ Redistributable AIO"
         Size = "31 MB"
         MB = 31
         Category = "Hệ thống"
+        IsEssential = $true
         Desc = "Trọn bộ Visual C++ 2005 đến 2022 (x86 & x64) sửa triệt để lỗi thiếu DLL"
         WingetId = "abbodi1406.vcredist"
         CheckReg = "Visual C++"
@@ -2437,6 +2733,7 @@ $softwareCatalog = @(
         Size = "27 MB"
         MB = 27
         Category = "Hệ thống"
+        IsEssential = $false
         Desc = "Thư viện Microsoft .NET Desktop Runtime phiên bản 6.0 LTS"
         WingetId = "Microsoft.DotNet.DesktopRuntime.6"
         CheckReg = "Microsoft .NET Desktop Runtime - 6"
@@ -2450,6 +2747,7 @@ $softwareCatalog = @(
         Size = "28 MB"
         MB = 28
         Category = "Hệ thống"
+        IsEssential = $false
         Desc = "Thư viện Microsoft .NET Desktop Runtime phiên bản 8.0 LTS mới nhất"
         WingetId = "Microsoft.DotNet.DesktopRuntime.8"
         CheckReg = "Microsoft .NET Desktop Runtime - 8"
@@ -2463,6 +2761,7 @@ $softwareCatalog = @(
         Size = "96 MB"
         MB = 96
         Category = "Hệ thống"
+        IsEssential = $false
         Desc = "Thư viện DirectX 9/11 hỗ trợ đồ họa cho phần mềm và game"
         WingetId = "Microsoft.DirectX"
         CheckReg = "DirectX"
@@ -2476,6 +2775,7 @@ $softwareCatalog = @(
         Size = "191 MB"
         MB = 191
         Category = "Hệ thống"
+        IsEssential = $false
         Desc = "Máy ảo Java 17 LTS hỗ trợ phần mềm khai thuế và kế toán văn phòng"
         WingetId = "EclipseAdoptium.Temurin.17.JDK"
         CheckReg = "Temurin"
@@ -2489,6 +2789,7 @@ $softwareCatalog = @(
         Size = "2 MB"
         MB = 2
         Category = "Hệ thống"
+        IsEssential = $false
         Desc = "Thư viện WebView2 cần thiết cho Zalo, Teams và các app hiện đại"
         WingetId = "Microsoft.EdgeWebView2Runtime"
         CheckReg = "Microsoft Edge WebView2 Runtime"
@@ -2515,6 +2816,202 @@ function Get-SoftwareAppStatus ($app, $installedRegList) {
     return $false
 }
 
+function Start-CatalogSoftware ($app) {
+    try {
+        # 1. Kiểm tra theo CheckPath nếu tồn tại
+        if ($app.CheckPath -and (Test-Path $app.CheckPath -ErrorAction SilentlyContinue)) {
+            Start-Process $app.CheckPath
+            Write-Log "Đã khởi chạy $($app.Name) từ: $($app.CheckPath)" "CLEAN"
+            return
+        }
+
+        # 2. Tìm Shortcut trong Start Menu (All Users & Current User)
+        $shortcutPatterns = @("*$($app.Name)*.lnk")
+        if ($app.CheckReg) { $shortcutPatterns += "*$($app.CheckReg)*.lnk" }
+        if ($app.CheckProc) { $shortcutPatterns += "*$($app.CheckProc)*.lnk" }
+
+        $menuPaths = @(
+            "$env:ProgramData\Microsoft\Windows\Start Menu\Programs",
+            "$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
+        )
+        foreach ($p in $menuPaths) {
+            if (-not (Test-Path $p)) { continue }
+            foreach ($sp in $shortcutPatterns) {
+                $lnk = Get-ChildItem -Path $p -Filter $sp -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($lnk) {
+                    Start-Process $lnk.FullName
+                    Write-Log "Đã khởi chạy $($app.Name) từ Shortcut Start Menu." "CLEAN"
+                    return
+                }
+            }
+        }
+
+        # 3. Tìm qua Registry DisplayIcon hoặc InstallLocation
+        $regPaths = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        $regApp = Get-ItemProperty $regPaths -ErrorAction SilentlyContinue | Where-Object {
+            ($app.CheckReg -and $_.DisplayName -match [regex]::Escape($app.CheckReg)) -or
+            ($_.DisplayName -match [regex]::Escape($app.Name))
+        } | Select-Object -First 1
+
+        if ($regApp) {
+            if ($regApp.DisplayIcon) {
+                $iconPath = ($regApp.DisplayIcon -split ',')[0].Trim('"')
+                if ($iconPath.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path $iconPath)) {
+                    Start-Process $iconPath
+                    Write-Log "Đã khởi chạy $($app.Name) từ DisplayIcon Registry." "CLEAN"
+                    return
+                }
+            }
+            if ($regApp.InstallLocation -and (Test-Path $regApp.InstallLocation)) {
+                $exe = Get-ChildItem -Path $regApp.InstallLocation -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($exe) {
+                    Start-Process $exe.FullName
+                    Write-Log "Đã khởi chạy $($app.Name) từ InstallLocation." "CLEAN"
+                    return
+                }
+            }
+        }
+
+        # 4. Tìm qua lệnh PATH nếu có CheckProc
+        if ($app.CheckProc) {
+            $cmd = Get-Command $app.CheckProc -ErrorAction SilentlyContinue
+            if ($cmd) {
+                Start-Process $cmd.Source
+                Write-Log "Đã khởi chạy $($app.Name) qua PATH hệ thống." "CLEAN"
+                return
+            }
+        }
+
+        Write-Log "Không tìm thấy đường dẫn khởi chạy trực tiếp của $($app.Name). Vui lòng mở từ Start Menu." "WARN"
+        [System.Windows.Forms.MessageBox]::Show(
+            "Không tìm thấy tệp thực thi trực tiếp của [$($app.Name)].`n`nBạn có thể mở ứng dụng từ thanh tìm kiếm Windows hoặc Start Menu.",
+            "Thông báo",
+            0,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        )
+    } catch {
+        Write-Log "Lỗi khi mở $($app.Name): $($_.Exception.Message)" "CRIT"
+    }
+}
+
+function Uninstall-CatalogSoftware ($app) {
+    $confirm = [System.Windows.Forms.MessageBox]::Show(
+        "Bạn có chắc chắn muốn gỡ cài đặt phần mềm [$($app.Name)] khỏi máy tính không?",
+        "Xác nhận gỡ phần mềm",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+    Write-Log ">>> BẮT ĐẦU GỠ CÀI ĐẶT: $($app.Name)..." "INFO"
+
+    # 1. Thử gỡ qua Winget nếu app có WingetId
+    $hasWinget = (Get-Command winget -ErrorAction SilentlyContinue)
+    $uninstalled = $false
+
+    if ($app.WingetId -and $hasWinget) {
+        Write-Log "Đang gỡ $($app.Name) qua Windows Package Manager (winget: $($app.WingetId))..." "INFO"
+        try {
+            Get-Process winget -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = "winget"
+            $psi.Arguments = "uninstall --id $($app.WingetId) --disable-interactivity"
+            $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+            $psi.CreateNoWindow = $true
+            $psi.UseShellExecute = $false
+            $proc = [System.Diagnostics.Process]::Start($psi)
+
+            $waitedMs = 0
+            $timeoutMs = 60000
+            while (-not $proc.HasExited -and $waitedMs -lt $timeoutMs) {
+                [System.Windows.Forms.Application]::DoEvents()
+                Start-Sleep -Milliseconds 250
+                $waitedMs += 250
+            }
+
+            if (-not $proc.HasExited) {
+                try { $proc.Kill() } catch {}
+                Write-Log "Quá thời gian chờ gỡ qua winget (60s). Đang chuyển sang gỡ qua Registry..." "WARN"
+            } elseif ($proc.ExitCode -eq 0) {
+                Write-Log "GỠ BỎ THÀNH CÔNG: $($app.Name) (qua winget)!" "CLEAN"
+                $uninstalled = $true
+            } else {
+                Write-Log "Winget thoát với mã $($proc.ExitCode). Đang chuyển sang gỡ qua Registry..." "WARN"
+            }
+        } catch {
+            Write-Log "Lỗi winget uninstall: $($_.Exception.Message). Chuyển sang Registry..." "WARN"
+        }
+    }
+
+    # 2. Thử gỡ qua Registry UninstallString nếu chưa gỡ xong
+    if (-not $uninstalled) {
+        $regPaths = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        $regApp = Get-ItemProperty $regPaths -ErrorAction SilentlyContinue | Where-Object {
+            ($app.CheckReg -and $_.DisplayName -match [regex]::Escape($app.CheckReg)) -or
+            ($_.DisplayName -match [regex]::Escape($app.Name))
+        } | Select-Object -First 1
+
+        if ($regApp) {
+            try {
+                if ($regApp.UninstallString -match '^MsiExec\.exe [/\-][IX](\{.*?\})' -or $regApp.PSChildName -match '^\{[0-9A-Fa-f-]+\}$') {
+                    $prodCode = if ($matches[1]) { $matches[1] } else { $regApp.PSChildName }
+                    Write-Log "Đang gỡ $($app.Name) qua MSIExec ($prodCode)..." "INFO"
+                    $p = Start-Process msiexec.exe -ArgumentList "/x `"$prodCode`" /qn /norestart" -Wait -PassThru
+                    if ($p.ExitCode -eq 0) {
+                        Write-Log "GỠ BỎ HOÀN TẤT: $($app.Name)!" "CLEAN"
+                        $uninstalled = $true
+                    } else {
+                        Write-Log "MSIExec thoát với mã $($p.ExitCode)." "WARN"
+                    }
+                } elseif ($regApp.QuietUninstallString) {
+                    Write-Log "Đang gỡ $($app.Name) qua QuietUninstallString..." "INFO"
+                    Start-Process cmd.exe -ArgumentList "/c `"$($regApp.QuietUninstallString)`"" -Wait
+                    Write-Log "GỠ BỎ HOÀN TẤT: $($app.Name)!" "CLEAN"
+                    $uninstalled = $true
+                } elseif ($regApp.UninstallString) {
+                    Write-Log "Đang khởi chạy trình gỡ cài đặt $($app.Name)..." "INFO"
+                    Start-Process cmd.exe -ArgumentList "/c `"$($regApp.UninstallString)`""
+                    Write-Log "Đã khởi động trình gỡ cài đặt $($app.Name)." "CLEAN"
+                    $uninstalled = $true
+                }
+            } catch {
+                Write-Log "Lỗi khi gỡ cài đặt $($app.Name): $($_.Exception.Message)" "CRIT"
+            }
+        }
+    }
+
+    # 3. Dọn dẹp thư mục nếu là dạng ZIP giải nén
+    if (-not $uninstalled) {
+        if ($app.InstallSubDir) {
+            $destDir = "$env:ProgramFiles\$($app.InstallSubDir)"
+            if (Test-Path $destDir) {
+                try {
+                    Remove-Item -Path $destDir -Recurse -Force -ErrorAction Stop
+                    Write-Log "Đã xóa sạch thư mục ứng dụng: $destDir" "CLEAN"
+                    $uninstalled = $true
+                } catch {
+                    Write-Log "Lỗi xóa thư mục: $($_.Exception.Message)" "WARN"
+                }
+            }
+        }
+    }
+
+    if ($uninstalled) {
+        [System.Windows.Forms.MessageBox]::Show("Đã hoàn tất thao tác gỡ cài đặt [$($app.Name)]!", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+    } else {
+        Write-Log "Không tìm thấy chuỗi gỡ cài đặt tự động cho $($app.Name)." "WARN"
+        [System.Windows.Forms.MessageBox]::Show("Không tìm thấy chuỗi gỡ cài đặt tự động cho $($app.Name).`n`nBạn có thể gỡ ứng dụng trong Windows Settings -> Installed apps.", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Warning)
+    }
+}
+
 function Install-CatalogSoftware ($app, $downloadOnly, $keepFiles, $targetDir) {
     if (-not (Test-Path $targetDir)) {
         New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
@@ -2523,25 +3020,48 @@ function Install-CatalogSoftware ($app, $downloadOnly, $keepFiles, $targetDir) {
     $localFile = Join-Path $targetDir $app.FileName
     Write-Log ">>> [PHẦN MỀM] Bắt đầu xử lý: $($app.Name)..." "INFO"
 
+    # Helper dọn dẹp bộ cài tạm thời khi hoàn tất
+    $cleanupTempFile = {
+        if (-not $keepFiles -and (Test-Path $localFile)) {
+            Start-Sleep -Milliseconds 600
+            $deleted = $false
+            for ($attempt = 1; $attempt -le 4; $attempt++) {
+                try {
+                    Remove-Item -Path $localFile -Force -ErrorAction Stop
+                    Write-Log "Đã tự động xoá bộ cài tạm: $($app.FileName)" "CLEAN"
+                    $deleted = $true
+                    break
+                } catch {
+                    Start-Sleep -Seconds 1
+                }
+            }
+            if (-not $deleted -and (Test-Path $localFile)) {
+                # Nếu tiến trình con vẫn đang giữ tệp, lên lịch xoá ngầm sau khi giải phóng
+                Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-NoProfile -Command `"Start-Sleep 8; Remove-Item -LiteralPath '$localFile' -Force -ErrorAction SilentlyContinue`""
+                Write-Log "Đã lên lịch xoá tệp tạm sau khi cài đặt hoàn tất: $($app.FileName)" "CLEAN"
+            }
+        }
+    }
+
     # 1. Nếu chỉ tải về
     if ($downloadOnly) {
         if (-not (Test-Path $localFile)) {
-            Write-Log "Đang tải xuống: $($app.Name) (~$($app.Size))..." "INFO"
+            Write-Log "Đang tải xuống $($app.Name) (~$($app.Size)) vào thư mục tạm: $localFile..." "INFO"
             try {
                 Invoke-WebRequest -Uri $app.Url -OutFile $localFile -UseBasicParsing -TimeoutSec 180
-                Write-Log "Đã tải về thành công: $localFile" "CLEAN"
+                Write-Log "Đã tải về thành công vào thư mục tạm: $localFile" "CLEAN"
             } catch {
                 Write-Log "Lỗi khi tải $($app.Name): $($_.Exception.Message)" "CRIT"
             }
         } else {
-            Write-Log "Tệp đã có sẵn trong thư mục: $localFile" "INFO"
+            Write-Log "Tệp đã có sẵn trong thư mục tạm: $localFile" "INFO"
         }
         return
     }
 
-    # 2. Nếu cài đặt: Thử file cục bộ trước nếu đã có sẵn
+    # 2. Nếu cài đặt: Thử file cục bộ trước nếu đã có sẵn trong thư mục tạm
     if (Test-Path $localFile) {
-        Write-Log "Tìm thấy tệp cài đặt cục bộ: $localFile. Bắt đầu cài đặt..." "INFO"
+        Write-Log "Tìm thấy tệp cài đặt có sẵn trong thư mục tạm: $localFile. Bắt đầu cài đặt..." "INFO"
         try {
             if ($app.IsZip) {
                 $destDir = "$env:ProgramFiles\$($app.InstallSubDir)"
@@ -2556,12 +3076,11 @@ function Install-CatalogSoftware ($app, $downloadOnly, $keepFiles, $targetDir) {
                 Start-Process -FilePath $localFile -ArgumentList $app.SilentArgs -Wait
                 Write-Log "CÀI ĐẶT THÀNH CÔNG: $($app.Name)!" "CLEAN"
             }
-            if (-not $keepFiles -and -not $app.IsPortable) {
-                Remove-Item $localFile -Force -ErrorAction SilentlyContinue
-            }
             return
         } catch {
             Write-Log "Lỗi cài đặt từ tệp cục bộ: $($_.Exception.Message)" "WARN"
+        } finally {
+            & $cleanupTempFile
         }
     }
 
@@ -2570,31 +3089,46 @@ function Install-CatalogSoftware ($app, $downloadOnly, $keepFiles, $targetDir) {
     if ($app.WingetId -and $hasWinget) {
         Write-Log "Đang cài đặt $($app.Name) qua Windows Package Manager (winget: $($app.WingetId))..." "INFO"
         try {
+            # Hủy các tiến trình winget bị kẹt trước đó (nếu có) để tránh khóa tiến trình
+            Get-Process winget -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID } | Stop-Process -Force -ErrorAction SilentlyContinue
+
             $psi = New-Object System.Diagnostics.ProcessStartInfo
             $psi.FileName = "winget"
-            $psi.Arguments = "install --id $($app.WingetId) --silent --accept-package-agreements --accept-source-agreements --disable-interactivity"
+            $psi.Arguments = "install --id $($app.WingetId) --silent --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade"
             $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
             $psi.CreateNoWindow = $true
             $psi.UseShellExecute = $false
             $proc = [System.Diagnostics.Process]::Start($psi)
-            $proc.WaitForExit(180000)
-            if ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
+
+            # Chờ tiến trình hoàn tất kèm DoEvents để không làm đơ giao diện UI (timeout 60s)
+            $waitedMs = 0
+            $timeoutMs = 60000
+            while (-not $proc.HasExited -and $waitedMs -lt $timeoutMs) {
+                [System.Windows.Forms.Application]::DoEvents()
+                Start-Sleep -Milliseconds 250
+                $waitedMs += 250
+            }
+
+            if (-not $proc.HasExited) {
+                try { $proc.Kill() } catch {}
+                Write-Log "Quá thời gian chờ cài qua winget (60s). Đang chuyển sang tải trực tiếp vào Temp..." "WARN"
+            } elseif ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
                 Write-Log "CÀI ĐẶT THÀNH CÔNG: $($app.Name) (qua winget)!" "CLEAN"
                 return
             } else {
-                Write-Log "Winget thoát với mã $($proc.ExitCode). Đang chuyển sang tải trực tiếp..." "WARN"
+                Write-Log "Winget thoát với mã $($proc.ExitCode). Đang chuyển sang tải trực tiếp vào Temp..." "WARN"
             }
         } catch {
-            Write-Log "Lỗi winget: $($_.Exception.Message). Đang chuyển sang tải trực tiếp..." "WARN"
+            Write-Log "Lỗi winget: $($_.Exception.Message). Đang chuyển sang tải trực tiếp vào Temp..." "WARN"
         }
     }
 
-    # 4. Tải trực tiếp từ URL và cài đặt ngầm
+    # 4. Tải trực tiếp từ URL vào thư mục tạm và cài đặt ngầm
     if ($app.Url) {
-        Write-Log "Đang tải xuống $($app.Name) từ CDN chính thức (~$($app.Size))..." "INFO"
+        Write-Log "Đang tải xuống $($app.Name) từ CDN chính thức vào thư mục tạm (~$($app.Size))..." "INFO"
         try {
             Invoke-WebRequest -Uri $app.Url -OutFile $localFile -UseBasicParsing -TimeoutSec 180
-            Write-Log "Tải về hoàn tất. Đang tiến hành cài đặt ngầm..." "INFO"
+            Write-Log "Tải về hoàn tất: $($app.FileName). Đang tiến hành cài đặt ngầm..." "INFO"
             
             if ($app.IsZip) {
                 $destDir = "$env:ProgramFiles\$($app.InstallSubDir)"
@@ -2609,13 +3143,120 @@ function Install-CatalogSoftware ($app, $downloadOnly, $keepFiles, $targetDir) {
                 Start-Process -FilePath $localFile -ArgumentList $app.SilentArgs -Wait
                 Write-Log "CÀI ĐẶT THÀNH CÔNG: $($app.Name)!" "CLEAN"
             }
-            if (-not $keepFiles -and -not $app.IsPortable) {
-                Remove-Item $localFile -Force -ErrorAction SilentlyContinue
-            }
         } catch {
             Write-Log "Lỗi cài đặt $($app.Name): $($_.Exception.Message)" "CRIT"
+        } finally {
+            & $cleanupTempFile
         }
     }
+}
+
+function Invoke-FastInstallOfficeSuite {
+    $confirm = [System.Windows.Forms.MessageBox]::Show(
+        "Bạn có muốn tự động tải và cài đặt TRỌN BỘ PHẦN MỀM VĂN PHÒNG THIẾT YẾU?`n`n" +
+        "Danh sách gồm 10 ứng dụng:`n" +
+        " • Trình duyệt: Google Chrome, Cốc Cốc`n" +
+        " • Bộ gõ tiếng Việt: UniKey, EVKey`n" +
+        " • Điều khiển từ xa: UltraViewer, AnyDesk`n" +
+        " • Xử lý PDF: Foxit PDF Reader`n" +
+        " • Nhắn tin văn phòng: Zalo PC`n" +
+        " • Nén & giải nén: 7-Zip, WinRAR`n`n" +
+        "Cơ chế: Tự động bỏ qua các app đã có sẵn (--no-upgrade), cài ngầm không treo giao diện.",
+        "Xác nhận cài trọn bộ văn phòng",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+    # Dọn dẹp winget kẹt trước
+    Get-Process winget -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+    Toggle-Buttons $false
+    Write-Log "==========================================================" "INFO"
+    Write-Log ">>> BẮT ĐẦU CÀI ĐẶT TRỌN BỘ PHẦN MỀM VĂN PHÒNG TỰ ĐỘNG..." "INFO"
+    Write-Log "==========================================================" "INFO"
+
+    $officeApps = @(
+        @{ Name = "Google Chrome";    Id = "Google.Chrome";         Catalog = "Google Chrome" },
+        @{ Name = "Cốc Cốc";          Id = "CocCoc.CocCoc";         Catalog = "Cốc Cốc" },
+        @{ Name = "UniKey";           Id = "UniKey.UniKey";         Catalog = "Unikey" },
+        @{ Name = "EVKey";            Id = "lamquangminh.EVKey";    Catalog = "EVKey" },
+        @{ Name = "UltraViewer";      Id = "DucFabulous.UltraViewer"; Catalog = "UltraViewer" },
+        @{ Name = "AnyDesk";          Id = "AnyDesk.AnyDesk";       Catalog = "AnyDesk" },
+        @{ Name = "Foxit PDF Reader"; Id = "Foxit.FoxitReader";     Catalog = "Foxit PDF Reader" },
+        @{ Name = "Zalo PC";          Id = "VNGCorp.Zalo";          Catalog = "Zalo PC" },
+        @{ Name = "7-Zip";            Id = "7zip.7zip";             Catalog = "7-Zip" },
+        @{ Name = "WinRAR";           Id = "RARLab.WinRAR";         Catalog = "WinRAR" }
+    )
+
+    $defaultDownloadDir = Join-Path $env:TEMP "BKC_Software"
+    $total = $officeApps.Count
+    $idx = 1
+    $installedCount = 0
+
+    foreach ($app in $officeApps) {
+        Write-Log "[$idx/$total] Đang kiểm tra & cài đặt: $($app.Name)..." "INFO"
+        
+        $catItem = $softwareCatalog | Where-Object { $_.Name -eq $app.Catalog } | Select-Object -First 1
+
+        $alreadyInstalled = $false
+        if ($catItem) {
+            $alreadyInstalled = Get-SoftwareAppStatus $catItem $null
+        }
+
+        if ($alreadyInstalled) {
+            Write-Log "-> [$($app.Name)] đã được cài đặt sẵn trên máy. Bỏ qua!" "CLEAN"
+        } else {
+            if ($catItem) {
+                Install-CatalogSoftware $catItem $false $false $defaultDownloadDir
+            } else {
+                try {
+                    $psi = New-Object System.Diagnostics.ProcessStartInfo
+                    $psi.FileName = "winget"
+                    $psi.Arguments = "install --id $($app.Id) --silent --accept-package-agreements --accept-source-agreements --disable-interactivity --no-upgrade"
+                    $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+                    $psi.CreateNoWindow = $true
+                    $psi.UseShellExecute = $false
+                    $proc = [System.Diagnostics.Process]::Start($psi)
+
+                    $waitedMs = 0
+                    $timeoutMs = 60000
+                    while (-not $proc.HasExited -and $waitedMs -lt $timeoutMs) {
+                        [System.Windows.Forms.Application]::DoEvents()
+                        Start-Sleep -Milliseconds 250
+                        $waitedMs += 250
+                    }
+                    if (-not $proc.HasExited) {
+                        try { $proc.Kill() } catch {}
+                        Write-Log "Quá thời gian chờ cài qua winget cho $($app.Name)." "WARN"
+                    } elseif ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
+                        Write-Log "CÀI ĐẶT THÀNH CÔNG: $($app.Name)!" "CLEAN"
+                    } else {
+                        Write-Log "Bỏ qua hoặc đã có sẵn: $($app.Name) (Mã: $($proc.ExitCode))" "INFO"
+                    }
+                } catch {
+                    Write-Log "Lỗi cài đặt $($app.Name): $($_.Exception.Message)" "WARN"
+                }
+            }
+            $installedCount++
+        }
+        $idx++
+        [System.Windows.Forms.Application]::DoEvents()
+    }
+
+    Write-Log "==========================================================" "CLEAN"
+    Write-Log ">>> HOÀN TẤT CÀI ĐẶT TRỌN BỘ PHẦN MỀM VĂN PHÒNG!" "CLEAN"
+    Write-Log "==========================================================" "CLEAN"
+
+    Toggle-Buttons $true
+
+    [System.Windows.Forms.MessageBox]::Show(
+        "Chúc mừng! Đã hoàn tất quá trình cài đặt trọn bộ phần mềm văn phòng thiết yếu.`n`n" +
+        "Tất cả phần mềm đã sẵn sàng hoạt động trên máy tính của bạn.",
+        "Cài đặt hoàn tất",
+        0,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    )
 }
 
 function Show-SoftwareLibraryDialog {
@@ -2629,7 +3270,7 @@ function Show-SoftwareLibraryDialog {
     $dlg.Font = $fontNormal
 
     # Thư mục tải mặc định
-    $defaultDownloadDir = Join-Path $env:USERPROFILE "Downloads\BKC_Software"
+    $defaultDownloadDir = Join-Path $env:TEMP "BKC_Software"
     if (-not (Test-Path $defaultDownloadDir)) {
         New-Item -ItemType Directory -Path $defaultDownloadDir -Force | Out-Null
     }
@@ -2701,13 +3342,21 @@ function Show-SoftwareLibraryDialog {
     $pnlPills.Size = New-Object System.Drawing.Size(915, 46)
     $dlg.Controls.Add($pnlPills)
 
+    # Đếm số lượng ứng dụng trong từng danh mục thực tế
+    $cntEssential = ($softwareCatalog | Where-Object { $_.IsEssential }).Count
+    $cntInternet  = ($softwareCatalog | Where-Object { $_.Category -eq "Internet" }).Count
+    $cntTienIch   = ($softwareCatalog | Where-Object { $_.Category -eq "Tiện ích" }).Count
+    $cntVanPhong  = ($softwareCatalog | Where-Object { $_.Category -eq "Văn phòng" }).Count
+    $cntHeThong   = ($softwareCatalog | Where-Object { $_.Category -eq "Hệ thống" }).Count
+    $cntAll       = $softwareCatalog.Count
+
     $categories = @(
-        @{ Key = "Thiết yếu";  Label = "Thiết yếu (12)" },
-        @{ Key = "Internet";   Label = "Internet (11)" },
-        @{ Key = "Tiện ích";   Label = "Tiện ích (10)" },
-        @{ Key = "Văn phòng";  Label = "Văn phòng (7)" },
-        @{ Key = "Hệ thống";   Label = "Hệ thống (6)" },
-        @{ Key = "Tất cả";     Label = "Tất cả (30+)" }
+        @{ Key = "Thiết yếu";  Label = "Thiết yếu ($cntEssential)" },
+        @{ Key = "Internet";   Label = "Internet ($cntInternet)" },
+        @{ Key = "Tiện ích";   Label = "Tiện ích ($cntTienIch)" },
+        @{ Key = "Văn phòng";  Label = "Văn phòng ($cntVanPhong)" },
+        @{ Key = "Hệ thống";   Label = "Hệ thống ($cntHeThong)" },
+        @{ Key = "Tất cả";     Label = "Tất cả ($cntAll)" }
     )
     $script:activeCategory = "Thiết yếu"
     $pillButtons = @()
@@ -2729,7 +3378,7 @@ function Show-SoftwareLibraryDialog {
 
     # Dòng 1: Thư mục tải
     $lblDirTag = New-Object System.Windows.Forms.Label
-    $lblDirTag.Text = "Thư mục tải:"
+    $lblDirTag.Text = "Thư mục tạm:"
     $lblDirTag.Font = $fontSmall
     $lblDirTag.ForeColor = [System.Drawing.Color]::FromArgb(71, 85, 105)
     $lblDirTag.Location = New-Object System.Drawing.Point(5, 6)
@@ -2782,13 +3431,13 @@ function Show-SoftwareLibraryDialog {
     })
 
     # Dòng 2: Checkboxes, stats và nút Cài đặt
-    $chkKeepFiles = New-Object System.Windows.Forms.CheckBox
-    $chkKeepFiles.Text = "Giữ file sau khi cài"
-    $chkKeepFiles.Font = $fontSmall
-    $chkKeepFiles.Checked = $true
-    $chkKeepFiles.Location = New-Object System.Drawing.Point(5, 42)
-    $chkKeepFiles.Size = New-Object System.Drawing.Size(140, 24)
-    $pnlBottom.Controls.Add($chkKeepFiles)
+    $chkAutoDelete = New-Object System.Windows.Forms.CheckBox
+    $chkAutoDelete.Text = "Tự xoá sau khi cài"
+    $chkAutoDelete.Font = $fontSmall
+    $chkAutoDelete.Checked = $true
+    $chkAutoDelete.Location = New-Object System.Drawing.Point(5, 42)
+    $chkAutoDelete.Size = New-Object System.Drawing.Size(145, 24)
+    $pnlBottom.Controls.Add($chkAutoDelete)
 
     $chkOnlyDownload = New-Object System.Windows.Forms.CheckBox
     $chkOnlyDownload.Text = "Chỉ tải về"
@@ -2801,9 +3450,20 @@ function Show-SoftwareLibraryDialog {
     $lblSelectStats.Text = "Đã chọn: 0 (Tổng 0 MB)"
     $lblSelectStats.Font = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
     $lblSelectStats.ForeColor = [System.Drawing.Color]::FromArgb(0, 105, 92)
-    $lblSelectStats.Location = New-Object System.Drawing.Point(265, 43)
-    $lblSelectStats.Size = New-Object System.Drawing.Size(250, 22)
+    $lblSelectStats.Location = New-Object System.Drawing.Point(260, 43)
+    $lblSelectStats.Size = New-Object System.Drawing.Size(130, 22)
     $pnlBottom.Controls.Add($lblSelectStats)
+
+    $btnSelectOffice = New-Object System.Windows.Forms.Button
+    $btnSelectOffice.Text = "⚡ Gói Văn Phòng"
+    $btnSelectOffice.Font = $fontSmall
+    $btnSelectOffice.Location = New-Object System.Drawing.Point(395, 39)
+    $btnSelectOffice.Size = New-Object System.Drawing.Size(125, 30)
+    $btnSelectOffice.BackColor = [System.Drawing.Color]::FromArgb(255, 243, 224)
+    $btnSelectOffice.ForeColor = [System.Drawing.Color]::FromArgb(230, 81, 0)
+    $btnSelectOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $btnSelectOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $pnlBottom.Controls.Add($btnSelectOffice)
 
     $btnSelectAll = New-Object System.Windows.Forms.Button
     $btnSelectAll.Text = "Chọn tất cả"
@@ -2852,7 +3512,10 @@ function Show-SoftwareLibraryDialog {
         $btnBatchInstall.Enabled = ($cnt -gt 0)
     }
 
-    $chkOnlyDownload.Add_CheckedChanged({ & $updateStats })
+    $chkOnlyDownload.Add_CheckedChanged({
+        $chkAutoDelete.Enabled = (-not $chkOnlyDownload.Checked)
+        & $updateStats
+    })
 
     # Hàm render danh sách thẻ phần mềm
     $renderList = {
@@ -2867,8 +3530,10 @@ function Show-SoftwareLibraryDialog {
             $matchCat = $false
             if ($script:activeCategory -eq "Tất cả") {
                 $matchCat = $true
-            } elseif ($app.Category -eq $script:activeCategory -or $app.AltCategory -eq $script:activeCategory) {
-                $matchCat = $true
+            } elseif ($script:activeCategory -eq "Thiết yếu") {
+                $matchCat = [bool]$app.IsEssential
+            } else {
+                $matchCat = ($app.Category -eq $script:activeCategory)
             }
 
             if (-not $matchCat) { continue }
@@ -2930,8 +3595,8 @@ function Show-SoftwareLibraryDialog {
             $lblDesc.Text = $app.Desc
             $lblDesc.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
             $lblDesc.ForeColor = [System.Drawing.Color]::FromArgb(148, 163, 184)
-            $lblDesc.Location = New-Object System.Drawing.Point(305, 13)
-            $lblDesc.Size = New-Object System.Drawing.Size(380, 20)
+            $lblDesc.Location = New-Object System.Drawing.Point(280, 13)
+            $lblDesc.Size = New-Object System.Drawing.Size(275, 20)
             $lblDesc.AutoEllipsis = $true
             $pnlRow.Controls.Add($lblDesc)
 
@@ -2941,8 +3606,8 @@ function Show-SoftwareLibraryDialog {
             # Badge trạng thái
             $lblStatus = New-Object System.Windows.Forms.Label
             $lblStatus.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
-            $lblStatus.Location = New-Object System.Drawing.Point(695, 10)
-            $lblStatus.Size = New-Object System.Drawing.Size(75, 24)
+            $lblStatus.Location = New-Object System.Drawing.Point(560, 9)
+            $lblStatus.Size = New-Object System.Drawing.Size(68, 25)
             $lblStatus.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
             if ($isInstalled) {
                 $lblStatus.Text = "Đã cài"
@@ -2954,12 +3619,12 @@ function Show-SoftwareLibraryDialog {
             }
             $pnlRow.Controls.Add($lblStatus)
 
-            # Nút hành động đơn lẻ (Cài / Cài lại)
+            # Nút 1: Cài / Cài lại
             $btnAction = New-Object System.Windows.Forms.Button
             $btnAction.Text = if ($isInstalled) { "Cài lại" } else { "Cài" }
             $btnAction.Font = $fontSmall
-            $btnAction.Location = New-Object System.Drawing.Point(785, 8)
-            $btnAction.Size = New-Object System.Drawing.Size(80, 28)
+            $btnAction.Location = New-Object System.Drawing.Point(636, 8)
+            $btnAction.Size = New-Object System.Drawing.Size(74, 28)
             $btnAction.Cursor = [System.Windows.Forms.Cursors]::Hand
             $btnAction.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
             if ($isInstalled) {
@@ -2976,13 +3641,65 @@ function Show-SoftwareLibraryDialog {
                 $btnAction.Text = "Đang cài..."
                 [System.Windows.Forms.Application]::DoEvents()
 
-                Install-CatalogSoftware $targetApp $chkOnlyDownload.Checked $chkKeepFiles.Checked $script:currentDownloadDir
+                $shouldKeep = if ($chkOnlyDownload.Checked) { $true } else { (-not $chkAutoDelete.Checked) }
+                Install-CatalogSoftware $targetApp $chkOnlyDownload.Checked $shouldKeep $script:currentDownloadDir
                 
                 # Cập nhật lại cache & UI
                 $script:cachedInstalled = & $getRegInstalled
                 & $renderList
             }.GetNewClosure())
             $pnlRow.Controls.Add($btnAction)
+
+            # Nút 2: Mở App
+            $btnRun = New-Object System.Windows.Forms.Button
+            $btnRun.Text = "Mở"
+            $btnRun.Font = $fontSmall
+            $btnRun.Location = New-Object System.Drawing.Point(714, 8)
+            $btnRun.Size = New-Object System.Drawing.Size(70, 28)
+            $btnRun.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+            $btnRun.Enabled = $isInstalled
+            if ($isInstalled) {
+                $btnRun.BackColor = [System.Drawing.Color]::FromArgb(69, 90, 100)
+                $btnRun.ForeColor = [System.Drawing.Color]::White
+                $btnRun.Cursor = [System.Windows.Forms.Cursors]::Hand
+            } else {
+                $btnRun.BackColor = [System.Drawing.Color]::FromArgb(238, 238, 238)
+                $btnRun.ForeColor = [System.Drawing.Color]::FromArgb(160, 160, 160)
+                $btnRun.Cursor = [System.Windows.Forms.Cursors]::Default
+            }
+            $btnRun.Add_Click({
+                param($s, $e)
+                Start-CatalogSoftware $targetApp
+            }.GetNewClosure())
+            $pnlRow.Controls.Add($btnRun)
+
+            # Nút 3: Gỡ Bỏ
+            $btnUninst = New-Object System.Windows.Forms.Button
+            $btnUninst.Text = "Gỡ"
+            $btnUninst.Font = $fontSmall
+            $btnUninst.Location = New-Object System.Drawing.Point(788, 8)
+            $btnUninst.Size = New-Object System.Drawing.Size(72, 28)
+            $btnUninst.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+            $btnUninst.Enabled = $isInstalled
+            if ($isInstalled) {
+                $btnUninst.BackColor = [System.Drawing.Color]::White
+                $btnUninst.ForeColor = [System.Drawing.Color]::FromArgb(198, 40, 40)
+                $btnUninst.Cursor = [System.Windows.Forms.Cursors]::Hand
+            } else {
+                $btnUninst.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 245)
+                $btnUninst.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+                $btnUninst.Cursor = [System.Windows.Forms.Cursors]::Default
+            }
+            $btnUninst.Add_Click({
+                param($s, $e)
+                $btnUninst.Enabled = $false
+                $btnUninst.Text = "Đang gỡ..."
+                [System.Windows.Forms.Application]::DoEvents()
+                Uninstall-CatalogSoftware $targetApp
+                $script:cachedInstalled = & $getRegInstalled
+                & $renderList
+            }.GetNewClosure())
+            $pnlRow.Controls.Add($btnUninst)
 
             $y += 46
             $rowIdx++
@@ -3004,10 +3721,9 @@ function Show-SoftwareLibraryDialog {
         $btnPill.Cursor = [System.Windows.Forms.Cursors]::Hand
         $btnPill.Tag = $cat.Key
 
-        $thisCatKey = $cat.Key
         $btnPill.Add_Click({
             param($s, $e)
-            $script:activeCategory = $thisCatKey
+            $script:activeCategory = [string]$s.Tag
             foreach ($p in $pillButtons) {
                 if ($p.Tag -eq $script:activeCategory) {
                     $p.BackColor = [System.Drawing.Color]::FromArgb(224, 242, 241)
@@ -3047,10 +3763,18 @@ function Show-SoftwareLibraryDialog {
         Write-Log "Đã làm mới danh sách kiểm tra phần mềm đã cài đặt." "CLEAN"
     })
 
-    # Sự kiện Chọn tất cả / Bỏ chọn
+    # Sự kiện Chọn gói văn phòng / Chọn tất cả / Bỏ chọn
+    $btnSelectOffice.Add_Click({
+        $officeNames = @("Google Chrome", "Cốc Cốc", "Unikey", "EVKey", "UltraViewer", "AnyDesk", "Foxit PDF Reader", "Zalo PC", "7-Zip", "WinRAR")
+        foreach ($app in $softwareCatalog) {
+            $selectedMap[$app.Name] = ($officeNames -contains $app.Name)
+        }
+        & $renderList
+    })
+
     $btnSelectAll.Add_Click({
         foreach ($app in $softwareCatalog) {
-            $matchCat = ($script:activeCategory -eq "Tất cả" -or $app.Category -eq $script:activeCategory -or $app.AltCategory -eq $script:activeCategory)
+            $matchCat = ($script:activeCategory -eq "Tất cả" -or ($script:activeCategory -eq "Thiết yếu" -and $app.IsEssential) -or $app.Category -eq $script:activeCategory)
             if ($matchCat) { $selectedMap[$app.Name] = $true }
         }
         & $renderList
@@ -3087,7 +3811,8 @@ function Show-SoftwareLibraryDialog {
             $btnBatchInstall.Text = "Đang cài $idx/$($itemsToInstall.Count)..."
             [System.Windows.Forms.Application]::DoEvents()
 
-            Install-CatalogSoftware $item $chkOnlyDownload.Checked $chkKeepFiles.Checked $script:currentDownloadDir
+            $shouldKeep = if ($chkOnlyDownload.Checked) { $true } else { (-not $chkAutoDelete.Checked) }
+            Install-CatalogSoftware $item $chkOnlyDownload.Checked $shouldKeep $script:currentDownloadDir
             $idx++
         }
 
@@ -3177,6 +3902,21 @@ $btnClearOffice.Location = New-Object System.Drawing.Point($col2, 200)
 $btnClearOffice.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
 $btnClearOffice.BackColor = [System.Drawing.Color]::FromArgb(173, 20, 87); $btnClearOffice.ForeColor = [System.Drawing.Color]::White; $btnClearOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnClearOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
 $btnClearOffice.Add_Click({ Toggle-Buttons $false; Clear-OfficeLicenses; Toggle-Buttons $true }); $tab1.Controls.Add($btnClearOffice); $allButtons += $btnClearOffice
+
+# Hàng 4: Bảo trì Defender/Update & Chuyển đổi Office C2R sang VL
+$btnToggleDefender = New-Object System.Windows.Forms.Button
+$btnToggleDefender.Text = "Bật / Tắt Defender & Update (Tạm thời)"
+$btnToggleDefender.Location = New-Object System.Drawing.Point(15, 255)
+$btnToggleDefender.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnToggleDefender.BackColor = [System.Drawing.Color]::FromArgb(69, 90, 100); $btnToggleDefender.ForeColor = [System.Drawing.Color]::White; $btnToggleDefender.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnToggleDefender.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnToggleDefender.Add_Click({ Toggle-Buttons $false; Invoke-ToggleDefenderUpdate; Toggle-Buttons $true }); $tab1.Controls.Add($btnToggleDefender); $allButtons += $btnToggleDefender
+
+$btnConvertC2R = New-Object System.Windows.Forms.Button
+$btnConvertC2R.Text = "Chuyển Office C2R Sang Volume (VL)"
+$btnConvertC2R.Location = New-Object System.Drawing.Point($col2, 255)
+$btnConvertC2R.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnConvertC2R.BackColor = [System.Drawing.Color]::FromArgb(49, 27, 146); $btnConvertC2R.ForeColor = [System.Drawing.Color]::White; $btnConvertC2R.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnConvertC2R.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnConvertC2R.Add_Click({ Toggle-Buttons $false; Invoke-ConvertOfficeC2RToVL; Toggle-Buttons $true }); $tab1.Controls.Add($btnConvertC2R); $allButtons += $btnConvertC2R
 
 
 # TAB 2: Kích hoạt By Phone
@@ -3712,12 +4452,12 @@ $lblArtDesc.Location = New-Object System.Drawing.Point(15, 34)
 $lblArtDesc.Size = New-Object System.Drawing.Size(810, 20)
 $tab5.Controls.Add($lblArtDesc)
 
-# --- NÚT LỚN NỔI BẬT: THƯ VIỆN PHẦN MỀM (KIỂU ANHDV BOOT) ---
+# --- NÚT LỚN NỔI BẬT: THƯ VIỆN PHẦN MỀM (KIỂU ANHDV BOOT) & CÀI NHANH VĂN PHÒNG ---
 $btnOpenSoftLibrary = New-Object System.Windows.Forms.Button
-$btnOpenSoftLibrary.Text = "Thư Viện Phần Mềm (Chrome, Zalo, Unikey, Office, PDF, C++...)"
-$btnOpenSoftLibrary.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$btnOpenSoftLibrary.Text = "Thư Viện Phần Mềm (34 App Tuyển Chọn)"
+$btnOpenSoftLibrary.Font = New-Object System.Drawing.Font("Segoe UI", 10.5, [System.Drawing.FontStyle]::Bold)
 $btnOpenSoftLibrary.Location = New-Object System.Drawing.Point(15, 58)
-$btnOpenSoftLibrary.Size = New-Object System.Drawing.Size(810, 44)
+$btnOpenSoftLibrary.Size = New-Object System.Drawing.Size(395, 44)
 $btnOpenSoftLibrary.BackColor = [System.Drawing.Color]::FromArgb(0, 137, 123)
 $btnOpenSoftLibrary.ForeColor = [System.Drawing.Color]::White
 $btnOpenSoftLibrary.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
@@ -3726,6 +4466,20 @@ $btnOpenSoftLibrary.Add_Click({
     Show-SoftwareLibraryDialog
 })
 $tab5.Controls.Add($btnOpenSoftLibrary); $allButtons += $btnOpenSoftLibrary
+
+$btnFastOfficeSuite = New-Object System.Windows.Forms.Button
+$btnFastOfficeSuite.Text = "⚡ Cài Nhanh Trọn Bộ Văn Phòng (1-Click)"
+$btnFastOfficeSuite.Font = New-Object System.Drawing.Font("Segoe UI", 10.5, [System.Drawing.FontStyle]::Bold)
+$btnFastOfficeSuite.Location = New-Object System.Drawing.Point(420, 58)
+$btnFastOfficeSuite.Size = New-Object System.Drawing.Size(405, 44)
+$btnFastOfficeSuite.BackColor = [System.Drawing.Color]::FromArgb(230, 81, 0)
+$btnFastOfficeSuite.ForeColor = [System.Drawing.Color]::White
+$btnFastOfficeSuite.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnFastOfficeSuite.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnFastOfficeSuite.Add_Click({
+    Invoke-FastInstallOfficeSuite
+})
+$tab5.Controls.Add($btnFastOfficeSuite); $allButtons += $btnFastOfficeSuite
 
 # Tiêu đề phụ: Bộ ứng dụng văn phòng ArtCraft
 $lblArtSection = New-Object System.Windows.Forms.Label
@@ -3977,7 +4731,7 @@ $btnRefreshArtStatus.Add_Click({
 $tab5.Controls.Add($btnRefreshArtStatus); $allButtons += $btnRefreshArtStatus
 
 $btnOpenSoftFolder = New-Object System.Windows.Forms.Button
-$btnOpenSoftFolder.Text = "Mở Thư Mục Phần Mềm"
+$btnOpenSoftFolder.Text = "Mở Thư Mục Tạm (Temp)"
 $btnOpenSoftFolder.Font = $fontBtn
 $btnOpenSoftFolder.Location = New-Object System.Drawing.Point(215, 304)
 $btnOpenSoftFolder.Size = New-Object System.Drawing.Size(195, 34)
@@ -3986,7 +4740,7 @@ $btnOpenSoftFolder.ForeColor = [System.Drawing.Color]::White
 $btnOpenSoftFolder.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $btnOpenSoftFolder.Cursor = [System.Windows.Forms.Cursors]::Hand
 $btnOpenSoftFolder.Add_Click({
-    $dir = Join-Path $env:USERPROFILE "Downloads\BKC_Software"
+    $dir = Join-Path $env:TEMP "BKC_Software"
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     [System.Diagnostics.Process]::Start("explorer.exe", $dir) | Out-Null
 })
@@ -4028,36 +4782,82 @@ $lblInfo.Text = "CÔNG CỤ TỐI ƯU VÀ KÍCH HOẠT BẢN QUYỀN - BKC LIC U
                 " - Hotline / Zalo: 0968.99.33.55`n`n" +
                 "Mọi thắc mắc hoặc cần hỗ trợ, vui lòng liên hệ theo các kênh trên."
 $lblInfo.Font = $fontNormal
-$lblInfo.Location = New-Object System.Drawing.Point(30, 30)
-$lblInfo.Size = New-Object System.Drawing.Size(400, 250)
+$lblInfo.Location = New-Object System.Drawing.Point(25, 20)
+$lblInfo.Size = New-Object System.Drawing.Size(420, 320)
 $lblInfo.BackColor = [System.Drawing.Color]::White
 $tab6.Controls.Add($lblInfo)
 
 $lblDonate = New-Object System.Windows.Forms.Label
-$lblDonate.Text = "ỦNG HỘ TÁC GIẢ (DONATE)`n" +
-                  "Ngân hàng: Vietcombank (VCB)`n" +
-                  "Số tài khoản: 9969699833`n" +
+$lblDonate.Text = "ỦNG HỘ TÁC GIẢ (DONATE)
+" +
+                  "Ngân hàng: Vietcombank (VCB)
+" +
+                  "Số tài khoản: 9969699833
+" +
                   "Chủ tài khoản: TRAN THANH HA"
 $lblDonate.Font = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
 $lblDonate.ForeColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
-$lblDonate.Location = New-Object System.Drawing.Point(430, 20)
-$lblDonate.Size = New-Object System.Drawing.Size(320, 75)
+$lblDonate.Location = New-Object System.Drawing.Point(470, 15)
+$lblDonate.Size = New-Object System.Drawing.Size(340, 75)
 $tab6.Controls.Add($lblDonate)
 
+$btnCopyStk = New-Object System.Windows.Forms.Button
+$btnCopyStk.Text = "Sao chép STK"
+$btnCopyStk.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$btnCopyStk.ForeColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
+$btnCopyStk.BackColor = [System.Drawing.Color]::FromArgb(240, 248, 240)
+$btnCopyStk.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnCopyStk.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
+$btnCopyStk.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnCopyStk.Location = New-Object System.Drawing.Point(470, 95)
+$btnCopyStk.Size = New-Object System.Drawing.Size(180, 28)
+$btnCopyStk.Add_Click({
+    [System.Windows.Forms.Clipboard]::SetText("9969699833")
+    Write-Log "Đã sao chép số tài khoản Vietcombank: 9969699833" "CLEAN"
+    [System.Windows.Forms.MessageBox]::Show("Đã sao chép số tài khoản Vietcombank [9969699833] vào bộ nhớ tạm!`n`nChủ tài khoản: TRAN THANH HA", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+})
+$tab6.Controls.Add($btnCopyStk)
+
+# Mã Base64 ảnh VietQR Vietcombank (Offline & Instant Load)
+$bkcQrBase64 = "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"
+
 $pbQR = New-Object System.Windows.Forms.PictureBox
-$pbQR.Location = New-Object System.Drawing.Point(430, 95)
-$pbQR.Size = New-Object System.Drawing.Size(165, 165)
-$pbQR.SizeMode = 'Zoom'
-$pbQR.BorderStyle = 'None'
+$pbQR.Location = New-Object System.Drawing.Point(470, 130)
+$pbQR.Size = New-Object System.Drawing.Size(180, 180)
+$pbQR.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::Zoom
+$pbQR.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$pbQR.BackColor = [System.Drawing.Color]::White
+
+# Tự động nạp QR ngay lập tức từ Base64 (hoạt động 100% Offline không phụ thuộc mạng)
+try {
+    $qrBytes = [System.Convert]::FromBase64String($bkcQrBase64)
+    $ms = New-Object System.IO.MemoryStream(,$qrBytes)
+    $img = [System.Drawing.Image]::FromStream($ms)
+    $pbQR.Image = New-Object System.Drawing.Bitmap($img)
+    $img.Dispose()
+    $ms.Dispose()
+} catch { }
+
 $tab6.Controls.Add($pbQR)
+
+$lblQrDesc = New-Object System.Windows.Forms.Label
+$lblQrDesc.Text = "Quét mã VietQR trên app Ngân hàng để ủng hộ"
+$lblQrDesc.Font = New-Object System.Drawing.Font("Segoe UI", 8.5, [System.Drawing.FontStyle]::Italic)
+$lblQrDesc.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
+$lblQrDesc.Location = New-Object System.Drawing.Point(440, 316)
+$lblQrDesc.Size = New-Object System.Drawing.Size(260, 20)
+$lblQrDesc.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+$tab6.Controls.Add($lblQrDesc)
 
 $tab6.Add_Enter({
     if ($pbQR.Image -eq $null) {
         try {
-            $webClient = New-Object System.Net.WebClient
-            $imgBytes = $webClient.DownloadData("https://img.vietqr.io/image/vcb-9969699833-qr_only.png")
-            $ms = New-Object System.IO.MemoryStream($imgBytes, 0, $imgBytes.Length)
-            $pbQR.Image = [System.Drawing.Image]::FromStream($ms)
+            $qrBytes = [System.Convert]::FromBase64String($bkcQrBase64)
+            $ms = New-Object System.IO.MemoryStream(,$qrBytes)
+            $img = [System.Drawing.Image]::FromStream($ms)
+            $pbQR.Image = New-Object System.Drawing.Bitmap($img)
+            $img.Dispose()
+            $ms.Dispose()
         } catch { }
     }
 })
