@@ -1,4 +1,4 @@
-# =========================================================================
+﻿# =========================================================================
 # BKC Lic Ultimate Edition - By TranHa v3.0
 # =========================================================================
 
@@ -812,116 +812,6 @@ function Check-TargetStatus {
             }
         }
     }
-}
-
-function Open-SpecificWebCID ($url, $name) {
-    $clean = if ($txtIID.Text) { $txtIID.Text.Trim() -replace '\D', '' } else { "" }
-    if (-not $clean) {
-        Get-TargetIID
-        $clean = if ($txtIID.Text) { $txtIID.Text.Trim() -replace '\D', '' } else { "" }
-    }
-    if ($clean) {
-        [System.Windows.Forms.Clipboard]::SetText($clean)
-        Write-Log "ĐÃ TỰ ĐỘNG SAO CHÉP IID VÀO CLIPBOARD: $clean" "CLEAN"
-    }
-    Write-Log "Đang mở trang web Get CID: $name ($url)..." "INFO"
-    Write-Log "HƯỚNG DẪN: Nhấn Ctrl+V để dán IID vào trang web để lấy mã CID." "CLEAN"
-    if ($url -match "khoatoantin") {
-        Write-Log "LƯU Ý KHOATOANTIN: Tài khoản đăng nhập nếu có hỏi: trogiup24h | Mật khẩu: PHO" "INFO"
-    }
-    try {
-        Start-Process $url
-    } catch {
-        Write-Log "Không thể tự mở trình duyệt. Vui lòng truy cập thủ công: $url" "WARN"
-    }
-}
-
-function Invoke-AutoGetCIDFromIID {
-    $iid = $txtIID.Text.Trim() -replace '\D', ''
-    if (-not ($iid.Length -eq 63 -or $iid.Length -eq 54)) {
-        Write-Log "IID không hợp lệ! Vui lòng bấm 'Lấy IID' trước (phải đủ 63 hoặc 54 số)." "WARN"
-        return $false
-    }
-    
-    Write-Log ">>> BẮT ĐẦU YÊU CẦU GET CID TỰ ĐỘNG CHO IID: $iid" "INFO"
-    Write-Log "Đang liên hệ hệ thống Web API..." "INFO"
-    [System.Windows.Forms.Application]::DoEvents()
-    
-    $endpoints = @(
-        @{ Name = "KhoaToanTin CIDMS"; Url = "https://khoatoantin.com/ajax/cidms_api?iids=$iid&username=trogiup24h&password=PHO" },
-        @{ Name = "GetCID.vn"; Url = "https://getcid.vn/api?iid=$iid" },
-        @{ Name = "GetCID.info"; Url = "https://getcid.info/api/cid?iid=$iid" }
-    )
-    
-    $cid = $null
-    foreach ($ep in $endpoints) {
-        try {
-            Write-Log "Thử máy chủ: $($ep.Name)..." "INFO"
-            $res = Invoke-RestMethod -Uri $ep.Url -Method Get -TimeoutSec 10 -ErrorAction Stop
-            $raw = "$res"
-            if ($res.cid) { $raw = "$($res.cid)" }
-            $clean = $raw -replace '\D', ''
-            if ($clean.Length -eq 48) {
-                $cid = $clean
-                Write-Log "=> Nhận CID thành công từ $($ep.Name)!" "CLEAN"
-                break
-            }
-        } catch {
-            Write-Log "  - Máy chủ $($ep.Name) không phản hồi hoặc yêu cầu xác thực riêng." "WARN"
-        }
-    }
-    
-    if ($cid -and $cid.Length -eq 48) {
-        $txtCID.Text = $cid
-        Update-PhoneValidationUI
-        Write-Log "CID (48 số): $cid" "CLEAN"
-        $grouped = Format-CIDGrouped $cid
-        Write-Log "Dạng khối A-H: $grouped" "INFO"
-        return $true
-    } else {
-        Write-Log "Các Web API tự động đang yêu cầu captcha hoặc bảo vệ Cloudflare." "WARN"
-        Write-Log "-> ĐÃ TỰ ĐỘNG SAO CHÉP IID VÀO CLIPBOARD: $iid" "CLEAN"
-        Write-Log "GỢI Ý: Bấm nút 'Mở Web Get CID' để mở web lấy CID và ấn Ctrl+V, hoặc dùng 'Trợ Lý Hotline'!" "INFO"
-        return $false
-    }
-}
-
-function Invoke-1ClickFullAutoPhone {
-    $txtLog.Text = ""
-    $targetName = if ($rbTargetWin.Checked) { "Windows" } else { "Microsoft Office" }
-    Write-Log "=== BẮT ĐẦU QUY TRÌNH AUTO ACTIVE BY PHONE 1-CLICK: $targetName ===" "INFO"
-    
-    # 1. Lấy IID
-    Get-TargetIID
-    $iid = $txtIID.Text.Trim() -replace '\D', ''
-    if (-not ($iid.Length -eq 63 -or $iid.Length -eq 54)) {
-        Write-Log "Không lấy được IID hợp lệ. Hãy kiểm tra xem bạn đã nạp Key Phone chưa!" "CRIT"
-        return
-    }
-    
-    # 2. Lấy CID tự động
-    $ok = Invoke-AutoGetCIDFromIID
-    if ($ok -and $txtCID.Text.Trim().Length -eq 48) {
-        # 3. Nạp CID
-        Install-TargetCID
-    } else {
-        # Mở Web lấy CID tự động nếu API thất bại
-        Open-SpecificWebCID "https://getcid.vn" "GetCID.vn"
-    }
-}
-
-function Invoke-AutoWinPhone {
-    $rbTargetWin.Checked = $true
-    Invoke-1ClickFullAutoPhone
-}
-
-function Invoke-AutoOfficePhone {
-    $rbTargetOffice.Checked = $true
-    Invoke-1ClickFullAutoPhone
-}
-
-function Invoke-AutoGetCID {
-    Invoke-AutoGetCIDFromIID
 }
 
 function Save-PhoneActivationBackup {
@@ -4258,9 +4148,9 @@ $tab2.Controls.Add($lblCIDPreview)
 
 # --- DÒNG 6: CÁC NÚT HÀNH ĐỘNG CHÍNH ---
 $btnCallAssistant = New-Object System.Windows.Forms.Button
-$btnCallAssistant.Text = "Trợ Lý Hotline 1800 400 470"
+$btnCallAssistant.Text = "Trợ Lý Tổng Đài (1800 400 470)"
 $btnCallAssistant.Location = New-Object System.Drawing.Point(15, 208)
-$btnCallAssistant.Size = New-Object System.Drawing.Size(200, 38)
+$btnCallAssistant.Size = New-Object System.Drawing.Size(255, 38)
 $btnCallAssistant.Font = $fontBtn
 $btnCallAssistant.BackColor = [System.Drawing.Color]::FromArgb(106, 27, 154)
 $btnCallAssistant.ForeColor = [System.Drawing.Color]::White
@@ -4269,95 +4159,61 @@ $btnCallAssistant.Cursor = [System.Windows.Forms.Cursors]::Hand
 $btnCallAssistant.Add_Click({ Show-CallCenterAssistantDialog })
 $tab2.Controls.Add($btnCallAssistant); $allButtons += $btnCallAssistant
 
-$btnAutoGetCID = New-Object System.Windows.Forms.Button
-$btnAutoGetCID.Text = "Tự Động Get CID (API)"
-$btnAutoGetCID.Location = New-Object System.Drawing.Point(222, 208)
-$btnAutoGetCID.Size = New-Object System.Drawing.Size(190, 38)
-$btnAutoGetCID.Font = $fontBtn
-$btnAutoGetCID.BackColor = [System.Drawing.Color]::FromArgb(40, 53, 147)
-$btnAutoGetCID.ForeColor = [System.Drawing.Color]::White
-$btnAutoGetCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnAutoGetCID.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnAutoGetCID.Add_Click({ Toggle-Buttons $false; Invoke-AutoGetCIDFromIID; Toggle-Buttons $true })
-$tab2.Controls.Add($btnAutoGetCID); $allButtons += $btnAutoGetCID
-
-# Context menu cho Web Get CID (5 trang đang hoạt động)
-$menuWebCID = New-Object System.Windows.Forms.ContextMenuStrip
-$menuWebCID.Font = $fontNormal
-$menuWebCID.Items.Add("1. KhoaToanTin CIDMS (User: trogiup24h / PHO)").Add_Click({ Open-SpecificWebCID "https://khoatoantin.com/cidms" "KhoaToanTin CIDMS" })
-$menuWebCID.Items.Add("2. GetCID Việt Nam (getcid.vn)").Add_Click({ Open-SpecificWebCID "https://getcid.vn" "GetCID.vn" })
-$menuWebCID.Items.Add("3. GetCID Quốc Tế (getcid.info)").Add_Click({ Open-SpecificWebCID "https://getcid.info" "GetCID.info" })
-$menuWebCID.Items.Add("4. KhoaToanTin Portal (khoatoantin.com)").Add_Click({ Open-SpecificWebCID "https://khoatoantin.com" "KhoaToanTin Portal" })
-$menuWebCID.Items.Add("5. Microsoft Self-Service Support Web").Add_Click({ Open-SpecificWebCID "https://support.microsoft.com/en-us/help/4051701/self-service-for-mobile-portal" "Microsoft Self-Service" })
-
-$btnOpenWebCID = New-Object System.Windows.Forms.Button
-$btnOpenWebCID.Text = "Mở Web Get CID (5 Web)"
-$btnOpenWebCID.Location = New-Object System.Drawing.Point(420, 208)
-$btnOpenWebCID.Size = New-Object System.Drawing.Size(195, 38)
-$btnOpenWebCID.Font = $fontBtn
-$btnOpenWebCID.BackColor = [System.Drawing.Color]::FromArgb(230, 81, 0)
-$btnOpenWebCID.ForeColor = [System.Drawing.Color]::White
-$btnOpenWebCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnOpenWebCID.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnOpenWebCID.Add_Click({
-    $clean = $txtIID.Text -replace '\D', ''
-    if (-not $clean) {
-        Get-TargetIID
-        $clean = $txtIID.Text -replace '\D', ''
+$btnActionInstallCID = New-Object System.Windows.Forms.Button
+$btnActionInstallCID.Text = "Dán & Nạp CID Kích Hoạt"
+$btnActionInstallCID.Location = New-Object System.Drawing.Point(280, 208)
+$btnActionInstallCID.Size = New-Object System.Drawing.Size(265, 38)
+$btnActionInstallCID.Font = $fontBtn
+$btnActionInstallCID.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
+$btnActionInstallCID.ForeColor = [System.Drawing.Color]::White
+$btnActionInstallCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnActionInstallCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnActionInstallCID.Add_Click({
+    Toggle-Buttons $false
+    $clean = $txtCID.Text.Trim() -replace '\D', ''
+    if ($clean.Length -eq 48) {
+        Install-TargetCID
+    } else {
+        Invoke-SmartPasteAndInstallCID
     }
-    if ($clean) {
-        [System.Windows.Forms.Clipboard]::SetText($clean)
-        Write-Log "ĐÃ SAO CHÉP IID VÀO CLIPBOARD: $clean" "CLEAN"
-    }
-    $menuWebCID.Show($btnOpenWebCID, 0, $btnOpenWebCID.Height)
+    Toggle-Buttons $true
 })
-$tab2.Controls.Add($btnOpenWebCID); $allButtons += $btnOpenWebCID
+$tab2.Controls.Add($btnActionInstallCID); $allButtons += $btnActionInstallCID
 
-$btnAuto1Click = New-Object System.Windows.Forms.Button
-$btnAuto1Click.Text = "Auto 1-Click (All-in-One)"
-$btnAuto1Click.Location = New-Object System.Drawing.Point(623, 208)
-$btnAuto1Click.Size = New-Object System.Drawing.Size(192, 38)
-$btnAuto1Click.Font = $fontBtn
-$btnAuto1Click.BackColor = [System.Drawing.Color]::FromArgb(27, 94, 32)
-$btnAuto1Click.ForeColor = [System.Drawing.Color]::White
-$btnAuto1Click.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnAuto1Click.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnAuto1Click.Add_Click({ Toggle-Buttons $false; Invoke-1ClickFullAutoPhone; Toggle-Buttons $true })
-$tab2.Controls.Add($btnAuto1Click); $allButtons += $btnAuto1Click
-
-# --- DÒNG 7: NÚT BACKUP & THÔNG TIN HOTLINE ---
 $btnSavePhone = New-Object System.Windows.Forms.Button
-$btnSavePhone.Text = "Lưu Backup Key & CID Ra Desktop"
-$btnSavePhone.Location = New-Object System.Drawing.Point(15, 252)
-$btnSavePhone.Size = New-Object System.Drawing.Size(255, 30)
-$btnSavePhone.Font = $fontSmall
-$btnSavePhone.BackColor = [System.Drawing.Color]::FromArgb(69, 90, 100)
+$btnSavePhone.Text = "Lưu Sao Lưu Key & CID (Desktop)"
+$btnSavePhone.Location = New-Object System.Drawing.Point(555, 208)
+$btnSavePhone.Size = New-Object System.Drawing.Size(260, 38)
+$btnSavePhone.Font = $fontBtn
+$btnSavePhone.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79)
 $btnSavePhone.ForeColor = [System.Drawing.Color]::White
 $btnSavePhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $btnSavePhone.Cursor = [System.Windows.Forms.Cursors]::Hand
 $btnSavePhone.Add_Click({ Save-PhoneActivationBackup })
 $tab2.Controls.Add($btnSavePhone); $allButtons += $btnSavePhone
 
+# --- DÒNG 7: THÔNG BÁO TỔNG ĐÀI HOTLINE ---
 $lblHotlineNotice = New-Object System.Windows.Forms.Label
-$lblHotlineNotice.Text = "Hotline Miễn Phí: 1800 400 470 (24/7)  •  Bấm 1 (Tiếng Việt) -> Bấm 1 (Cá nhân)"
-$lblHotlineNotice.Location = New-Object System.Drawing.Point(280, 256)
-$lblHotlineNotice.Size = New-Object System.Drawing.Size(535, 22)
+$lblHotlineNotice.Text = "Hotline Hỗ Trợ Kích Hoạt Miễn Phí Của Microsoft: 1800 400 470 (24/7)  •  Bấm 1 (Tiếng Việt) -> Bấm 1 (Cá Nhân)"
+$lblHotlineNotice.Location = New-Object System.Drawing.Point(15, 254)
+$lblHotlineNotice.Size = New-Object System.Drawing.Size(800, 22)
 $lblHotlineNotice.Font = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
 $lblHotlineNotice.ForeColor = [System.Drawing.Color]::FromArgb(198, 40, 40)
+$lblHotlineNotice.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
 $lblHotlineNotice.UseMnemonic = $false
 $tab2.Controls.Add($lblHotlineNotice)
 
 # --- DÒNG 8: KHUNG HƯỚNG DẪN QUY TRÌNH (QUICK GUIDE) ---
 $pnlGuide = New-Object System.Windows.Forms.Panel
-$pnlGuide.Location = New-Object System.Drawing.Point(15, 288)
-$pnlGuide.Size = New-Object System.Drawing.Size(800, 78)
+$pnlGuide.Location = New-Object System.Drawing.Point(15, 282)
+$pnlGuide.Size = New-Object System.Drawing.Size(800, 84)
 $pnlGuide.BackColor = [System.Drawing.Color]::FromArgb(240, 244, 248)
 $pnlGuide.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $tab2.Controls.Add($pnlGuide)
 
 $lblGuideTitle = New-Object System.Windows.Forms.Label
 $lblGuideTitle.Text = "HƯỚNG DẪN QUY TRÌNH KÍCH HOẠT BY PHONE (3 BƯỚC NHANH GỌN):"
-$lblGuideTitle.Location = New-Object System.Drawing.Point(8, 4)
+$lblGuideTitle.Location = New-Object System.Drawing.Point(8, 5)
 $lblGuideTitle.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $lblGuideTitle.ForeColor = [System.Drawing.Color]::FromArgb(21, 101, 192)
 $lblGuideTitle.AutoSize = $true
@@ -4365,10 +4221,10 @@ $pnlGuide.Controls.Add($lblGuideTitle)
 
 $lblGuideContent = New-Object System.Windows.Forms.Label
 $lblGuideContent.Text = "1. Chọn đối tượng (Windows / Office) -> Bấm 'Lấy IID' (hoặc 'Nạp Key Phone Mới' nếu máy chưa nạp Key).`r`n" +
-                        "2. Bấm 'Trợ Lý Hotline 1800 400 470' để gọi tổng đài miễn phí, hoặc bấm 'Tự Động Get CID' / 'Mở Web Get CID'.`r`n" +
-                        "3. Bấm 'Dán & Nạp CID (1-Click)' để kích hoạt ngay. Thành công thì bấm 'Lưu Backup' để dùng lại vĩnh viễn!"
-$lblGuideContent.Location = New-Object System.Drawing.Point(8, 22)
-$lblGuideContent.Size = New-Object System.Drawing.Size(782, 50)
+                        "2. Lấy mã CID: Gọi tổng đài miễn phí 1800 400 470 (bấm 'Trợ Lý Tổng Đài' để đọc 9 nhóm IID và nhận 8 khối CID), hoặc nhận CID từ bên cung cấp key.`r`n" +
+                        "3. Bấm 'Dán & Nạp CID Kích Hoạt' để hoàn tất kích hoạt. Thành công bấm 'Lưu Sao Lưu' để tái sử dụng vĩnh viễn!"
+$lblGuideContent.Location = New-Object System.Drawing.Point(8, 26)
+$lblGuideContent.Size = New-Object System.Drawing.Size(782, 52)
 $lblGuideContent.Font = $fontSmall
 $lblGuideContent.ForeColor = [System.Drawing.Color]::FromArgb(50, 50, 50)
 $lblGuideContent.UseMnemonic = $false
