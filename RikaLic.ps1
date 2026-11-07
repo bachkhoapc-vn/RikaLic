@@ -171,3 +171,4 @@ if ($procHandle -ne [IntPtr]::Zero -and -not ("Console.Window" -as [type])) {
         ' -ErrorAction SilentlyContinue
         if ("Console.Window" -as [type]) {
             [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
+Thinking
