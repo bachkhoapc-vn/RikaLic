@@ -1,4 +1,4 @@
-﻿# =========================================================================
+# =========================================================================
 # BKC Lic Ultimate Edition - By TranHa v3.0
 # =========================================================================
 
@@ -1705,7 +1705,31 @@ function Invoke-HardwareScan {
 
 function Get-ArtCraftAppStatus ($targetName) {
     try {
-        # 1. Kiểm tra nhanh đường dẫn thư mục cài đặt mặc định (~0.1ms)
+        # 1. Tra cứu trong Registry Uninstall (Chính xác nhất và có ProductCode / UninstallString)
+        $regPaths = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        $installed = Get-ItemProperty -Path $regPaths -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -and ($_.DisplayName -like "*$targetName*") }
+        if ($installed) {
+            $item = $installed | Select-Object -First 1
+            $v = if ($item.DisplayVersion) { "v$($item.DisplayVersion)" } else { "Đã cài" }
+            $prodCode = if ($item.PSChildName -match '^\{[0-9A-Fa-f-]+\}$') { $item.PSChildName } else { $null }
+            if (-not $prodCode -and $item.UninstallString -match '\{[0-9A-Fa-f-]{36}\}') {
+                $prodCode = $Matches[0]
+            }
+            return @{
+                Installed = $true
+                Version = $v
+                ProductCode = $prodCode
+                UninstallString = $item.UninstallString
+                Path = $item.InstallLocation
+            }
+        }
+
+        # 2. Kiểm tra nhanh đường dẫn thư mục cài đặt mặc định (~0.1ms)
         $paths = @(
             "$env:ProgramFiles\$targetName\$targetName.exe",
             "${env:ProgramFiles(x86)}\$targetName\$targetName.exe",
@@ -1719,7 +1743,7 @@ function Get-ArtCraftAppStatus ($targetName) {
             }
         }
 
-        # 2. Kiểm tra nhanh shortcut Start Menu trực tiếp
+        # 3. Kiểm tra nhanh shortcut Start Menu trực tiếp
         $menuPaths = @(
             "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\$targetName.lnk",
             "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\$targetName.lnk",
@@ -1730,24 +1754,11 @@ function Get-ArtCraftAppStatus ($targetName) {
                 return @{ Installed = $true; Version = "Đã cài"; Shortcut = $mp }
             }
         }
-
-        # 3. Kiểm tra trong Registry Uninstall (chỉ chạy khi chưa thấy file)
-        $regPaths = @(
-            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
-        )
-        $installed = Get-ItemProperty -Path $regPaths -ErrorAction SilentlyContinue |
-            Where-Object { $_.DisplayName -and ($_.DisplayName -like "*$targetName*") }
-        if ($installed) {
-            $item = $installed | Select-Object -First 1
-            $v = if ($item.DisplayVersion) { "v$($item.DisplayVersion)" } else { "Đã cài" }
-            return @{ Installed = $true; Version = $v; ProductCode = $item.PSChildName; UninstallString = $item.UninstallString }
-        }
     } catch { }
 
     return @{ Installed = $false; Version = "Chưa cài đặt" }
 }
+
 
 function Start-ArtCraftApp ($targetName, $displayName) {
     try {
@@ -1883,24 +1894,87 @@ function Install-ArtCraftSuite {
 function Uninstall-ArtCraftApp ($targetName, $displayName) {
     try {
         Write-Log "Đang kiểm tra thông tin gỡ bỏ của $displayName..." "INFO"
+        
+        # 1. Tra cứu trực tiếp trong Registry để lấy ProductCode / UninstallString mới nhất
+        $regPaths = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        $regItem = Get-ItemProperty -Path $regPaths -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -and ($_.DisplayName -like "*$targetName*" -or $_.DisplayName -like "*$displayName*") } |
+            Select-Object -First 1
+
+        $productCode = $null
+        $uninstallStr = $null
+
+        if ($regItem) {
+            if ($regItem.PSChildName -match '^\{[0-9A-Fa-f-]+\}$') {
+                $productCode = $regItem.PSChildName
+            }
+            $uninstallStr = $regItem.UninstallString
+        }
+
+        if (-not $productCode -and $uninstallStr -match '\{[0-9A-Fa-f-]{36}\}') {
+            $productCode = $Matches[0]
+        }
+
+        # Thử lấy từ hàm status nếu chưa có
         $status = Get-ArtCraftAppStatus $targetName
-        if (-not $status.Installed) {
+        if (-not $productCode -and $status.ProductCode -match '^\{[0-9A-Fa-f-]+\}$') {
+            $productCode = $status.ProductCode
+        }
+        if (-not $uninstallStr -and $status.UninstallString) {
+            $uninstallStr = $status.UninstallString
+        }
+
+        # Đóng tiến trình đang chạy nếu có trước khi gỡ
+        Stop-Process -Name $targetName -Force -ErrorAction SilentlyContinue
+
+        # Nếu hoàn toàn không phát hiện ứng dụng
+        if (-not $productCode -and -not $uninstallStr -and -not $status.Installed) {
             Write-Log "Không tìm thấy $displayName được cài đặt trên hệ thống." "WARN"
             return
         }
 
-        if ($status.ProductCode -match '^\{[0-9A-Fa-f-]+\}$') {
-            Write-Log "Đang gỡ cài đặt $displayName (Mã gói: $($status.ProductCode))..." "INFO"
-            $p = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$($status.ProductCode)`" /qn /norestart" -Wait -PassThru
-            if ($p.ExitCode -eq 0) {
+        # Thực thi gỡ cài đặt
+        if ($productCode) {
+            Write-Log "Đang gỡ cài đặt $displayName (Mã MSI: $productCode)..." "INFO"
+            $p = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$productCode`" /qn /norestart" -Wait -PassThru
+            if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) {
                 Write-Log "Gỡ cài đặt $displayName thành công!" "CLEAN"
             } else {
                 Write-Log "Gỡ cài đặt $displayName kết thúc với mã thoát: $($p.ExitCode)" "WARN"
             }
-        } elseif ($status.UninstallString) {
+        } elseif ($uninstallStr) {
             Write-Log "Đang chạy lệnh gỡ bỏ của $displayName..." "INFO"
-            Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($status.UninstallString)`"" -Wait
-            Write-Log "Đã gửi lệnh gỡ cài đặt $displayName." "CLEAN"
+            if ($uninstallStr -match 'msiexec.*\/[xX]\s*(\{[0-9A-Fa-f-]+\})') {
+                $guid = $Matches[1]
+                $p = Start-Process -FilePath "msiexec.exe" -ArgumentList "/x `"$guid`" /qn /norestart" -Wait -PassThru
+                if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) {
+                    Write-Log "Gỡ cài đặt $displayName thành công!" "CLEAN"
+                } else {
+                    Write-Log "Gỡ cài đặt kết thúc với mã: $($p.ExitCode)" "WARN"
+                }
+            } else {
+                Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$uninstallStr`"" -Wait
+                Write-Log "Đã gửi lệnh gỡ cài đặt $displayName." "CLEAN"
+            }
+        } elseif ($status.Path -or $status.Shortcut) {
+            # Trường hợp tệp sót lại hoặc portable
+            Write-Log "Đang dọn dẹp các tệp cài đặt sót lại của $displayName..." "INFO"
+            if ($status.Path -and (Test-Path $status.Path)) {
+                $dir = Split-Path $status.Path -Parent
+                if ($dir -and (Test-Path $dir) -and ($dir -like "*$targetName*" -or $dir -like "*ArtCraft*")) {
+                    Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue
+                } else {
+                    Remove-Item -Path $status.Path -Force -ErrorAction SilentlyContinue
+                }
+            }
+            if ($status.Shortcut -and (Test-Path $status.Shortcut)) {
+                Remove-Item -Path $status.Shortcut -Force -ErrorAction SilentlyContinue
+            }
+            Write-Log "Đã dọn dẹp tệp của $displayName thành công." "CLEAN"
         } else {
             Write-Log "Không tìm thấy mã ProductCode MSI để tự gỡ. Vui lòng gỡ trong Windows Settings." "WARN"
         }
@@ -1909,6 +1983,7 @@ function Uninstall-ArtCraftApp ($targetName, $displayName) {
     }
     Update-ArtCraftStatusUI
 }
+
 
 function Update-ArtCraftStatusUI {
     try {
@@ -2998,18 +3073,30 @@ function Uninstall-CatalogSoftware ($app) {
         }
     }
 
-    # 3. Dọn dẹp thư mục nếu là dạng ZIP giải nén
+    # 3. Dá»n dáº¹p náº¿u lÃ  dáº¡ng ZIP giáº£i nÃ©n hoáº·c Portable
     if (-not $uninstalled) {
+        if ($app.CheckProc) {
+            Get-Process -Name $app.CheckProc -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 300
+        }
         if ($app.InstallSubDir) {
             $destDir = "$env:ProgramFiles\$($app.InstallSubDir)"
             if (Test-Path $destDir) {
                 try {
                     Remove-Item -Path $destDir -Recurse -Force -ErrorAction Stop
-                    Write-Log "Đã xóa sạch thư mục ứng dụng: $destDir" "CLEAN"
+                    Write-Log "ÄÃ£ xÃ³a sáº¡ch thÆ° má»¥c á»©ng dá»¥ng: $destDir" "CLEAN"
                     $uninstalled = $true
                 } catch {
-                    Write-Log "Lỗi xóa thư mục: $($_.Exception.Message)" "WARN"
+                    Write-Log "Lá»—i xÃ³a thÆ° má»¥c: $($_.Exception.Message)" "WARN"
                 }
+            }
+        } elseif ($app.IsPortable -and $app.CheckPath -and (Test-Path $app.CheckPath)) {
+            try {
+                Remove-Item -Path $app.CheckPath -Force -ErrorAction Stop
+                Write-Log "ÄÃ£ xÃ³a tá»‡p thá»±c thi Portable: $($app.CheckPath)" "CLEAN"
+                $uninstalled = $true
+            } catch {
+                Write-Log "Lá»—i xÃ³a tá»‡p Portable: $($_.Exception.Message)" "WARN"
             }
         }
     }
@@ -3279,17 +3366,14 @@ function Show-SoftwareLibraryDialog {
     $dlg.BackColor = [System.Drawing.Color]::FromArgb(248, 249, 250)
     $dlg.Font = $fontNormal
 
-    # Thư mục tải mặc định
     $defaultDownloadDir = Join-Path $env:TEMP "BKC_Software"
     if (-not (Test-Path $defaultDownloadDir)) {
         New-Item -ItemType Directory -Path $defaultDownloadDir -Force | Out-Null
     }
 
-    # Bảng trạng thái chọn
-    $selectedMap = @{}
-    foreach ($a in $softwareCatalog) { $selectedMap[$a.Name] = $false }
+    $script:softSelectedMap = @{}
+    foreach ($a in $softwareCatalog) { $script:softSelectedMap[$a.Name] = $false }
 
-    # Quét danh sách phần mềm đã cài đặt
     $getRegInstalled = {
         return @(Get-ItemProperty "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue) +
                @(Get-ItemProperty "HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue) +
@@ -3329,11 +3413,11 @@ function Show-SoftwareLibraryDialog {
     $lblSearch.Size = New-Object System.Drawing.Size(65, 22)
     $pnlHeader.Controls.Add($lblSearch)
 
-    $txtSearch = New-Object System.Windows.Forms.TextBox
-    $txtSearch.Location = New-Object System.Drawing.Point(615, 20)
-    $txtSearch.Size = New-Object System.Drawing.Size(210, 26)
-    $txtSearch.Font = $fontNormal
-    $pnlHeader.Controls.Add($txtSearch)
+    $script:softTxtSearch = New-Object System.Windows.Forms.TextBox
+    $script:softTxtSearch.Location = New-Object System.Drawing.Point(615, 20)
+    $script:softTxtSearch.Size = New-Object System.Drawing.Size(210, 26)
+    $script:softTxtSearch.Font = $fontNormal
+    $pnlHeader.Controls.Add($script:softTxtSearch)
 
     $btnRefresh = New-Object System.Windows.Forms.Button
     $btnRefresh.Text = "Làm mới"
@@ -3352,7 +3436,6 @@ function Show-SoftwareLibraryDialog {
     $pnlPills.Size = New-Object System.Drawing.Size(915, 46)
     $dlg.Controls.Add($pnlPills)
 
-    # Đếm số lượng ứng dụng trong từng danh mục thực tế
     $cntEssential = ($softwareCatalog | Where-Object { $_.IsEssential }).Count
     $cntInternet  = ($softwareCatalog | Where-Object { $_.Category -eq "Internet" }).Count
     $cntTienIch   = ($softwareCatalog | Where-Object { $_.Category -eq "Tiện ích" }).Count
@@ -3368,17 +3451,17 @@ function Show-SoftwareLibraryDialog {
         @{ Key = "Hệ thống";   Label = "Hệ thống ($cntHeThong)" },
         @{ Key = "Tất cả";     Label = "Tất cả ($cntAll)" }
     )
-    $script:activeCategory = "Thiết yếu"
-    $pillButtons = @()
+    $script:softActiveCategory = "Thiết yếu"
+    $script:softPillButtons = @()
 
     # --- SCROLLABLE SOFTWARE CARDS CONTAINER ---
-    $pnlCards = New-Object System.Windows.Forms.Panel
-    $pnlCards.Location = New-Object System.Drawing.Point(15, 126)
-    $pnlCards.Size = New-Object System.Drawing.Size(915, 455)
-    $pnlCards.AutoScroll = $true
-    $pnlCards.BackColor = [System.Drawing.Color]::White
-    $pnlCards.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-    $dlg.Controls.Add($pnlCards)
+    $script:softPnlCards = New-Object System.Windows.Forms.Panel
+    $script:softPnlCards.Location = New-Object System.Drawing.Point(15, 126)
+    $script:softPnlCards.Size = New-Object System.Drawing.Size(915, 455)
+    $script:softPnlCards.AutoScroll = $true
+    $script:softPnlCards.BackColor = [System.Drawing.Color]::White
+    $script:softPnlCards.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+    $dlg.Controls.Add($script:softPnlCards)
 
     # --- BOTTOM STATUS & TOOLBAR AREA ---
     $pnlBottom = New-Object System.Windows.Forms.Panel
@@ -3386,7 +3469,6 @@ function Show-SoftwareLibraryDialog {
     $pnlBottom.Size = New-Object System.Drawing.Size(915, 82)
     $dlg.Controls.Add($pnlBottom)
 
-    # Dòng 1: Thư mục tải
     $lblDirTag = New-Object System.Windows.Forms.Label
     $lblDirTag.Text = "Thư mục tạm:"
     $lblDirTag.Font = $fontSmall
@@ -3441,33 +3523,33 @@ function Show-SoftwareLibraryDialog {
     })
 
     # Dòng 2: Checkboxes, stats và nút Cài đặt
-    $chkAutoDelete = New-Object System.Windows.Forms.CheckBox
-    $chkAutoDelete.Text = "Tự xoá sau khi cài"
-    $chkAutoDelete.Font = $fontSmall
-    $chkAutoDelete.Checked = $true
-    $chkAutoDelete.Location = New-Object System.Drawing.Point(5, 42)
-    $chkAutoDelete.Size = New-Object System.Drawing.Size(145, 24)
-    $pnlBottom.Controls.Add($chkAutoDelete)
+    $script:softChkAutoDelete = New-Object System.Windows.Forms.CheckBox
+    $script:softChkAutoDelete.Text = "Tự xoá sau khi cài"
+    $script:softChkAutoDelete.Font = $fontSmall
+    $script:softChkAutoDelete.Checked = $true
+    $script:softChkAutoDelete.Location = New-Object System.Drawing.Point(5, 42)
+    $script:softChkAutoDelete.Size = New-Object System.Drawing.Size(145, 24)
+    $pnlBottom.Controls.Add($script:softChkAutoDelete)
 
-    $chkOnlyDownload = New-Object System.Windows.Forms.CheckBox
-    $chkOnlyDownload.Text = "Chỉ tải về"
-    $chkOnlyDownload.Font = $fontSmall
-    $chkOnlyDownload.Location = New-Object System.Drawing.Point(155, 42)
-    $chkOnlyDownload.Size = New-Object System.Drawing.Size(95, 24)
-    $pnlBottom.Controls.Add($chkOnlyDownload)
+    $script:softChkOnlyDownload = New-Object System.Windows.Forms.CheckBox
+    $script:softChkOnlyDownload.Text = "Chỉ tải về"
+    $script:softChkOnlyDownload.Font = $fontSmall
+    $script:softChkOnlyDownload.Location = New-Object System.Drawing.Point(155, 42)
+    $script:softChkOnlyDownload.Size = New-Object System.Drawing.Size(95, 24)
+    $pnlBottom.Controls.Add($script:softChkOnlyDownload)
 
-    $lblSelectStats = New-Object System.Windows.Forms.Label
-    $lblSelectStats.Text = "Đã chọn: 0 (Tổng 0 MB)"
-    $lblSelectStats.Font = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
-    $lblSelectStats.ForeColor = [System.Drawing.Color]::FromArgb(0, 105, 92)
-    $lblSelectStats.Location = New-Object System.Drawing.Point(260, 43)
-    $lblSelectStats.Size = New-Object System.Drawing.Size(130, 22)
-    $pnlBottom.Controls.Add($lblSelectStats)
+    $script:softLblSelectStats = New-Object System.Windows.Forms.Label
+    $script:softLblSelectStats.Text = "Đã chọn: 0 (Tổng 0 MB)"
+    $script:softLblSelectStats.Font = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
+    $script:softLblSelectStats.ForeColor = [System.Drawing.Color]::FromArgb(0, 105, 92)
+    $script:softLblSelectStats.Location = New-Object System.Drawing.Point(260, 43)
+    $script:softLblSelectStats.Size = New-Object System.Drawing.Size(155, 22)
+    $pnlBottom.Controls.Add($script:softLblSelectStats)
 
     $btnSelectOffice = New-Object System.Windows.Forms.Button
     $btnSelectOffice.Text = "⚡ Gói Văn Phòng"
     $btnSelectOffice.Font = $fontSmall
-    $btnSelectOffice.Location = New-Object System.Drawing.Point(395, 39)
+    $btnSelectOffice.Location = New-Object System.Drawing.Point(420, 39)
     $btnSelectOffice.Size = New-Object System.Drawing.Size(125, 30)
     $btnSelectOffice.BackColor = [System.Drawing.Color]::FromArgb(255, 243, 224)
     $btnSelectOffice.ForeColor = [System.Drawing.Color]::FromArgb(230, 81, 0)
@@ -3478,7 +3560,7 @@ function Show-SoftwareLibraryDialog {
     $btnSelectAll = New-Object System.Windows.Forms.Button
     $btnSelectAll.Text = "Chọn tất cả"
     $btnSelectAll.Font = $fontSmall
-    $btnSelectAll.Location = New-Object System.Drawing.Point(525, 39)
+    $btnSelectAll.Location = New-Object System.Drawing.Point(550, 39)
     $btnSelectAll.Size = New-Object System.Drawing.Size(95, 30)
     $btnSelectAll.BackColor = [System.Drawing.Color]::White
     $btnSelectAll.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
@@ -3488,67 +3570,64 @@ function Show-SoftwareLibraryDialog {
     $btnDeselectAll = New-Object System.Windows.Forms.Button
     $btnDeselectAll.Text = "Bỏ chọn"
     $btnDeselectAll.Font = $fontSmall
-    $btnDeselectAll.Location = New-Object System.Drawing.Point(628, 39)
-    $btnDeselectAll.Size = New-Object System.Drawing.Size(85, 30)
+    $btnDeselectAll.Location = New-Object System.Drawing.Point(650, 39)
+    $btnDeselectAll.Size = New-Object System.Drawing.Size(80, 30)
     $btnDeselectAll.BackColor = [System.Drawing.Color]::White
     $btnDeselectAll.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
     $btnDeselectAll.Cursor = [System.Windows.Forms.Cursors]::Hand
     $pnlBottom.Controls.Add($btnDeselectAll)
 
-    $btnBatchInstall = New-Object System.Windows.Forms.Button
-    $btnBatchInstall.Text = "Cài đặt (0)"
-    $btnBatchInstall.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
-    $btnBatchInstall.ForeColor = [System.Drawing.Color]::White
-    $btnBatchInstall.BackColor = [System.Drawing.Color]::FromArgb(0, 137, 123)
-    $btnBatchInstall.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-    $btnBatchInstall.Cursor = [System.Windows.Forms.Cursors]::Hand
-    $btnBatchInstall.Location = New-Object System.Drawing.Point(725, 33)
-    $btnBatchInstall.Size = New-Object System.Drawing.Size(180, 42)
-    $pnlBottom.Controls.Add($btnBatchInstall)
+    $script:softBtnBatchInstall = New-Object System.Windows.Forms.Button
+    $script:softBtnBatchInstall.Text = "Cài đặt (0)"
+    $script:softBtnBatchInstall.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+    $script:softBtnBatchInstall.ForeColor = [System.Drawing.Color]::White
+    $script:softBtnBatchInstall.BackColor = [System.Drawing.Color]::FromArgb(0, 137, 123)
+    $script:softBtnBatchInstall.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $script:softBtnBatchInstall.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $script:softBtnBatchInstall.Location = New-Object System.Drawing.Point(735, 33)
+    $script:softBtnBatchInstall.Size = New-Object System.Drawing.Size(170, 42)
+    $pnlBottom.Controls.Add($script:softBtnBatchInstall)
 
-    # Hàm cập nhật số liệu thống kê lựa chọn
-    $updateStats = {
+    $script:softUpdateStats = {
         $cnt = 0
         $totMB = 0
         foreach ($a in $softwareCatalog) {
-            if ($selectedMap[$a.Name]) {
+            if ($script:softSelectedMap[$a.Name]) {
                 $cnt++
                 $totMB += $a.MB
             }
         }
-        $lblSelectStats.Text = "Đã chọn: $cnt (Tổng $($totMB) MB)"
-        $actionWord = if ($chkOnlyDownload.Checked) { "Tải về" } else { "Cài đặt" }
-        $btnBatchInstall.Text = "$actionWord ($cnt)"
-        $btnBatchInstall.Enabled = ($cnt -gt 0)
+        $script:softLblSelectStats.Text = "Đã chọn: $cnt (Tổng $($totMB) MB)"
+        $actionWord = if ($script:softChkOnlyDownload.Checked) { "Tải về" } else { "Cài đặt" }
+        $script:softBtnBatchInstall.Text = "$actionWord ($cnt)"
+        $script:softBtnBatchInstall.Enabled = ($cnt -gt 0)
     }
 
-    $chkOnlyDownload.Add_CheckedChanged({
-        $chkAutoDelete.Enabled = (-not $chkOnlyDownload.Checked)
-        & $updateStats
+    $script:softChkOnlyDownload.Add_CheckedChanged({
+        $script:softChkAutoDelete.Enabled = (-not $script:softChkOnlyDownload.Checked)
+        & $script:softUpdateStats
     })
 
     # Hàm render danh sách thẻ phần mềm
-    $renderList = {
-        $pnlCards.SuspendLayout()
-        $pnlCards.Controls.Clear()
+    $script:softRenderList = {
+        $script:softPnlCards.SuspendLayout()
+        $script:softPnlCards.Controls.Clear()
 
-        $filterText = $txtSearch.Text.Trim().ToLower()
+        $filterText = $script:softTxtSearch.Text.Trim().ToLower()
         $filteredList = @()
 
         foreach ($app in $softwareCatalog) {
-            # Kiểm tra Category
             $matchCat = $false
-            if ($script:activeCategory -eq "Tất cả") {
+            if ($script:softActiveCategory -eq "Tất cả") {
                 $matchCat = $true
-            } elseif ($script:activeCategory -eq "Thiết yếu") {
+            } elseif ($script:softActiveCategory -eq "Thiết yếu") {
                 $matchCat = [bool]$app.IsEssential
             } else {
-                $matchCat = ($app.Category -eq $script:activeCategory)
+                $matchCat = ($app.Category -eq $script:softActiveCategory)
             }
 
             if (-not $matchCat) { continue }
 
-            # Kiểm tra Search filter
             if ($filterText) {
                 $matchSearch = ($app.Name.ToLower().Contains($filterText) -or $app.Desc.ToLower().Contains($filterText))
                 if (-not $matchSearch) { continue }
@@ -3565,20 +3644,20 @@ function Show-SoftwareLibraryDialog {
             $pnlRow.Size = New-Object System.Drawing.Size(880, 44)
             $pnlRow.BackColor = if ($rowIdx % 2 -eq 0) { [System.Drawing.Color]::White } else { [System.Drawing.Color]::FromArgb(248, 250, 252) }
             $pnlRow.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-            $pnlCards.Controls.Add($pnlRow)
+            $script:softPnlCards.Controls.Add($pnlRow)
 
             # Checkbox
             $chkItem = New-Object System.Windows.Forms.CheckBox
             $chkItem.Location = New-Object System.Drawing.Point(10, 12)
             $chkItem.Size = New-Object System.Drawing.Size(20, 20)
-            $chkItem.Checked = [bool]$selectedMap[$app.Name]
+            $chkItem.Checked = [bool]$script:softSelectedMap[$app.Name]
             $chkItem.Cursor = [System.Windows.Forms.Cursors]::Hand
-            $thisAppName = $app.Name
+            $chkItem.Tag = $app.Name
             $chkItem.Add_CheckedChanged({
                 param($s, $e)
-                $selectedMap[$thisAppName] = $s.Checked
-                & $updateStats
-            }.GetNewClosure())
+                $script:softSelectedMap[$s.Tag] = $s.Checked
+                & $script:softUpdateStats
+            })
             $pnlRow.Controls.Add($chkItem)
 
             # Tên phần mềm
@@ -3587,30 +3666,30 @@ function Show-SoftwareLibraryDialog {
             $lblName.Font = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
             $lblName.ForeColor = [System.Drawing.Color]::FromArgb(15, 23, 42)
             $lblName.Location = New-Object System.Drawing.Point(36, 12)
-            $lblName.Size = New-Object System.Drawing.Size(185, 22)
+            $lblName.Size = New-Object System.Drawing.Size(180, 22)
             $lblName.AutoEllipsis = $true
             $pnlRow.Controls.Add($lblName)
 
-            # Dung lượng
+            # Dung lượng (Location 220, Width 70)
             $lblSize = New-Object System.Windows.Forms.Label
             $lblSize.Text = "• ~$($app.Size)"
             $lblSize.Font = $fontSmall
             $lblSize.ForeColor = [System.Drawing.Color]::FromArgb(100, 116, 139)
-            $lblSize.Location = New-Object System.Drawing.Point(225, 13)
-            $lblSize.Size = New-Object System.Drawing.Size(75, 20)
+            $lblSize.Location = New-Object System.Drawing.Point(220, 13)
+            $lblSize.Size = New-Object System.Drawing.Size(70, 20)
             $pnlRow.Controls.Add($lblSize)
 
-            # Mô tả ngắn
+            # Mô tả ngắn (Location 295, Width 260 - KHÔNG ĐÈ LÊN DUNG LƯỢNG)
             $lblDesc = New-Object System.Windows.Forms.Label
             $lblDesc.Text = $app.Desc
             $lblDesc.Font = New-Object System.Drawing.Font("Segoe UI", 8.5)
             $lblDesc.ForeColor = [System.Drawing.Color]::FromArgb(148, 163, 184)
-            $lblDesc.Location = New-Object System.Drawing.Point(280, 13)
-            $lblDesc.Size = New-Object System.Drawing.Size(275, 20)
+            $lblDesc.Location = New-Object System.Drawing.Point(295, 13)
+            $lblDesc.Size = New-Object System.Drawing.Size(260, 20)
             $lblDesc.AutoEllipsis = $true
             $pnlRow.Controls.Add($lblDesc)
 
-            # Kiểm tra trạng thái cài đặt
+            # Trạng thái cài đặt
             $isInstalled = Get-SoftwareAppStatus $app $script:cachedInstalled
 
             # Badge trạng thái
@@ -3644,20 +3723,19 @@ function Show-SoftwareLibraryDialog {
                 $btnAction.BackColor = [System.Drawing.Color]::FromArgb(0, 137, 123)
                 $btnAction.ForeColor = [System.Drawing.Color]::White
             }
-            $targetApp = $app
+            $btnAction.Tag = $app
             $btnAction.Add_Click({
                 param($s, $e)
-                $btnAction.Enabled = $false
-                $btnAction.Text = "Đang cài..."
+                $s.Enabled = $false
+                $s.Text = "Đang cài..."
                 [System.Windows.Forms.Application]::DoEvents()
 
-                $shouldKeep = if ($chkOnlyDownload.Checked) { $true } else { (-not $chkAutoDelete.Checked) }
-                Install-CatalogSoftware $targetApp $chkOnlyDownload.Checked $shouldKeep $script:currentDownloadDir
-                
-                # Cập nhật lại cache & UI
+                $shouldKeep = if ($script:softChkOnlyDownload.Checked) { $true } else { (-not $script:softChkAutoDelete.Checked) }
+                Install-CatalogSoftware $s.Tag $script:softChkOnlyDownload.Checked $shouldKeep $script:currentDownloadDir
+
                 $script:cachedInstalled = & $getRegInstalled
-                & $renderList
-            }.GetNewClosure())
+                & $script:softRenderList
+            })
             $pnlRow.Controls.Add($btnAction)
 
             # Nút 2: Mở App
@@ -3677,10 +3755,11 @@ function Show-SoftwareLibraryDialog {
                 $btnRun.ForeColor = [System.Drawing.Color]::FromArgb(160, 160, 160)
                 $btnRun.Cursor = [System.Windows.Forms.Cursors]::Default
             }
+            $btnRun.Tag = $app
             $btnRun.Add_Click({
                 param($s, $e)
-                Start-CatalogSoftware $targetApp
-            }.GetNewClosure())
+                Start-CatalogSoftware $s.Tag
+            })
             $pnlRow.Controls.Add($btnRun)
 
             # Nút 3: Gỡ Bỏ
@@ -3700,23 +3779,24 @@ function Show-SoftwareLibraryDialog {
                 $btnUninst.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
                 $btnUninst.Cursor = [System.Windows.Forms.Cursors]::Default
             }
+            $btnUninst.Tag = $app
             $btnUninst.Add_Click({
                 param($s, $e)
-                $btnUninst.Enabled = $false
-                $btnUninst.Text = "Đang gỡ..."
+                $s.Enabled = $false
+                $s.Text = "Đang gỡ..."
                 [System.Windows.Forms.Application]::DoEvents()
-                Uninstall-CatalogSoftware $targetApp
+                Uninstall-CatalogSoftware $s.Tag
                 $script:cachedInstalled = & $getRegInstalled
-                & $renderList
-            }.GetNewClosure())
+                & $script:softRenderList
+            })
             $pnlRow.Controls.Add($btnUninst)
 
             $y += 46
             $rowIdx++
         }
 
-        $pnlCards.ResumeLayout()
-        & $updateStats
+        $script:softPnlCards.ResumeLayout()
+        & $script:softUpdateStats
     }
 
     # Tạo các nút chọn danh mục (Category Pills)
@@ -3733,9 +3813,9 @@ function Show-SoftwareLibraryDialog {
 
         $btnPill.Add_Click({
             param($s, $e)
-            $script:activeCategory = [string]$s.Tag
-            foreach ($p in $pillButtons) {
-                if ($p.Tag -eq $script:activeCategory) {
+            $script:softActiveCategory = [string]$s.Tag
+            foreach ($p in $script:softPillButtons) {
+                if ($p.Tag -eq $script:softActiveCategory) {
                     $p.BackColor = [System.Drawing.Color]::FromArgb(224, 242, 241)
                     $p.ForeColor = [System.Drawing.Color]::FromArgb(0, 121, 107)
                     $p.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(0, 121, 107)
@@ -3745,10 +3825,10 @@ function Show-SoftwareLibraryDialog {
                     $p.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(226, 232, 240)
                 }
             }
-            & $renderList
-        }.GetNewClosure())
+            & $script:softRenderList
+        })
 
-        if ($cat.Key -eq $script:activeCategory) {
+        if ($cat.Key -eq $script:softActiveCategory) {
             $btnPill.BackColor = [System.Drawing.Color]::FromArgb(224, 242, 241)
             $btnPill.ForeColor = [System.Drawing.Color]::FromArgb(0, 121, 107)
             $btnPill.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(0, 121, 107)
@@ -3759,17 +3839,17 @@ function Show-SoftwareLibraryDialog {
         }
 
         $pnlPills.Controls.Add($btnPill)
-        $pillButtons += $btnPill
+        $script:softPillButtons += $btnPill
         $pillX += 150
     }
 
     # Sự kiện tìm kiếm thời gian thực
-    $txtSearch.Add_TextChanged({ & $renderList })
+    $script:softTxtSearch.Add_TextChanged({ & $script:softRenderList })
 
     # Sự kiện nút Làm mới
     $btnRefresh.Add_Click({
         $script:cachedInstalled = & $getRegInstalled
-        & $renderList
+        & $script:softRenderList
         Write-Log "Đã làm mới danh sách kiểm tra phần mềm đã cài đặt." "CLEAN"
     })
 
@@ -3777,71 +3857,45 @@ function Show-SoftwareLibraryDialog {
     $btnSelectOffice.Add_Click({
         $officeNames = @("Google Chrome", "Cốc Cốc", "Unikey", "EVKey", "UltraViewer", "AnyDesk", "Foxit PDF Reader", "Zalo PC", "7-Zip", "WinRAR")
         foreach ($app in $softwareCatalog) {
-            $selectedMap[$app.Name] = ($officeNames -contains $app.Name)
+            $script:softSelectedMap[$app.Name] = ($officeNames -contains $app.Name)
         }
-        & $renderList
+        & $script:softRenderList
     })
 
     $btnSelectAll.Add_Click({
+        $filterText = $script:softTxtSearch.Text.Trim().ToLower()
         foreach ($app in $softwareCatalog) {
-            $matchCat = ($script:activeCategory -eq "Tất cả" -or ($script:activeCategory -eq "Thiết yếu" -and $app.IsEssential) -or $app.Category -eq $script:activeCategory)
-            if ($matchCat) { $selectedMap[$app.Name] = $true }
+            $matchCat = $false
+            if ($script:softActiveCategory -eq "Tất cả") { $matchCat = $true }
+            elseif ($script:softActiveCategory -eq "Thiết yếu") { $matchCat = [bool]$app.IsEssential }
+            else { $matchCat = ($app.Category -eq $script:softActiveCategory) }
+
+            if ($matchCat) {
+                if ($filterText) {
+                    if ($app.Name.ToLower().Contains($filterText) -or $app.Desc.ToLower().Contains($filterText)) {
+                        $script:softSelectedMap[$app.Name] = $true
+                    }
+                } else {
+                    $script:softSelectedMap[$app.Name] = $true
+                }
+            }
         }
-        & $renderList
+        & $script:softRenderList
     })
 
     $btnDeselectAll.Add_Click({
         foreach ($app in $softwareCatalog) {
-            $selectedMap[$app.Name] = $false
+            $script:softSelectedMap[$app.Name] = $false
         }
-        & $renderList
-    })
-
-    # Sự kiện Cài đặt hàng loạt (Batch Install)
-    $btnBatchInstall.Add_Click({
-        $itemsToInstall = @()
-        foreach ($app in $softwareCatalog) {
-            if ($selectedMap[$app.Name]) { $itemsToInstall += $app }
-        }
-
-        if ($itemsToInstall.Count -eq 0) {
-            [System.Windows.Forms.MessageBox]::Show("Vui lòng chọn ít nhất 1 phần mềm để cài đặt!", "Thông báo", 0, [System.Windows.Forms.MessageBoxIcon]::Warning)
-            return
-        }
-
-        $actionText = if ($chkOnlyDownload.Checked) { "tải về" } else { "cài đặt" }
-        $confirm = [System.Windows.Forms.MessageBox]::Show("Bạn có chắc chắn muốn $actionText $($itemsToInstall.Count) phần mềm đã chọn?", "Xác nhận", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
-        if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
-
-        $btnBatchInstall.Enabled = $false
-        $dlg.Cursor = [System.Windows.Forms.Cursors]::WaitCursor
-
-        $idx = 1
-        foreach ($item in $itemsToInstall) {
-            $btnBatchInstall.Text = "Đang cài $idx/$($itemsToInstall.Count)..."
-            [System.Windows.Forms.Application]::DoEvents()
-
-            $shouldKeep = if ($chkOnlyDownload.Checked) { $true } else { (-not $chkAutoDelete.Checked) }
-            Install-CatalogSoftware $item $chkOnlyDownload.Checked $shouldKeep $script:currentDownloadDir
-            $idx++
-        }
-
-        # Quét lại trạng thái & render lại
-        $script:cachedInstalled = & $getRegInstalled
-        & $renderList
-
-        $dlg.Cursor = [System.Windows.Forms.Cursors]::Default
-        $btnBatchInstall.Enabled = $true
-        & $updateStats
-
-        [System.Windows.Forms.MessageBox]::Show("Đã hoàn tất $actionText $($itemsToInstall.Count) phần mềm!", "Hoàn tất", 0, [System.Windows.Forms.MessageBoxIcon]::Information)
+        & $script:softRenderList
     })
 
     # Render lần đầu
-    & $renderList
+    & $script:softRenderList
 
     $dlg.ShowDialog() | Out-Null
 }
+
 
 # --- THIẾT LẬP TAB CONTROL ---
 $tabControl = New-Object System.Windows.Forms.TabControl
