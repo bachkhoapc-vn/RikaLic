@@ -1,4 +1,4 @@
-# =========================================================================
+﻿# =========================================================================
 # BKC Lic Ultimate Edition - By TranHa v3.0
 # =========================================================================
 
@@ -40,13 +40,8 @@ if (-not $isAdmin) {
     if ($PSCommandPath) {
         # Chạy từ file cứng (.ps1)
         Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`"" -Verb RunAs
-    } else {
-        # Chạy file-less từ RAM
-        $webUrl = "https://lic.bachkhoapc.vn"
-        $webCmd = "Invoke-RestMethod '$webUrl' | Invoke-Expression"
-        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"$webCmd`"" -Verb RunAs
+        Exit
     }
-    Exit
 }
 
 # Ẩn cửa sổ dòng lệnh nếu đang hiển thị (bỏ qua nếu đã chạy dưới chế độ Hidden để tối ưu tốc độ và tránh Antivirus)
