@@ -1,4 +1,4 @@
-﻿# =========================================================================
+# =========================================================================
 # BKC Lic Ultimate Edition - By TranHa v3.0
 # =========================================================================
 
@@ -38,9 +38,17 @@ function Get-DecodedWindowsKey {
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     if ($PSCommandPath) {
-        # Chạy từ file cứng (.ps1)
-        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`"" -Verb RunAs
-        Exit
+        # Chay tu file (.ps1) - Thu xin quyen Administrator qua tien trinh moi
+        try {
+            $psExe = if ($PSHOME -and (Test-Path "$PSHOME\powershell.exe")) { "$PSHOME\powershell.exe" } else { "powershell.exe" }
+            Start-Process -FilePath $psExe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs -ErrorAction Stop
+            Exit
+        } catch {
+            Write-Warning "Khong the tu dong chuyen quyen Administrator tu terminal nay: $($_.Exception.Message)"
+            Write-Host "[!] Huong dan chay voi day du quyen Administrator:" -ForegroundColor Yellow
+            Write-Host "    1. Nhap chuot phai vao file 'Run_WinLic.cmd' va chon 'Run as administrator'." -ForegroundColor Cyan
+            Write-Host "    2. Hoac mo PowerShell bang 'Run as Administrator' roi go: .\$([System.IO.Path]::GetFileName($PSCommandPath))`n" -ForegroundColor Cyan
+        }
     }
 }
 
@@ -4148,86 +4156,167 @@ $tab2.Controls.Add($lblCIDPreview)
 
 # --- DÒNG 6: CÁC NÚT HÀNH ĐỘNG CHÍNH ---
 $btnCallAssistant = New-Object System.Windows.Forms.Button
+
 $btnCallAssistant.Text = "Trợ Lý Tổng Đài (1800 400 470)"
+
 $btnCallAssistant.Location = New-Object System.Drawing.Point(15, 208)
+
 $btnCallAssistant.Size = New-Object System.Drawing.Size(255, 38)
+
 $btnCallAssistant.Font = $fontBtn
+
 $btnCallAssistant.BackColor = [System.Drawing.Color]::FromArgb(106, 27, 154)
+
 $btnCallAssistant.ForeColor = [System.Drawing.Color]::White
+
 $btnCallAssistant.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+
 $btnCallAssistant.Cursor = [System.Windows.Forms.Cursors]::Hand
+
 $btnCallAssistant.Add_Click({ Show-CallCenterAssistantDialog })
+
 $tab2.Controls.Add($btnCallAssistant); $allButtons += $btnCallAssistant
 
+
+
 $btnActionInstallCID = New-Object System.Windows.Forms.Button
+
 $btnActionInstallCID.Text = "Dán & Nạp CID Kích Hoạt"
+
 $btnActionInstallCID.Location = New-Object System.Drawing.Point(280, 208)
+
 $btnActionInstallCID.Size = New-Object System.Drawing.Size(265, 38)
+
 $btnActionInstallCID.Font = $fontBtn
+
 $btnActionInstallCID.BackColor = [System.Drawing.Color]::FromArgb(46, 125, 50)
+
 $btnActionInstallCID.ForeColor = [System.Drawing.Color]::White
+
 $btnActionInstallCID.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+
 $btnActionInstallCID.Cursor = [System.Windows.Forms.Cursors]::Hand
+
 $btnActionInstallCID.Add_Click({
+
     Toggle-Buttons $false
+
     $clean = $txtCID.Text.Trim() -replace '\D', ''
+
     if ($clean.Length -eq 48) {
+
         Install-TargetCID
+
     } else {
+
         Invoke-SmartPasteAndInstallCID
+
     }
+
     Toggle-Buttons $true
+
 })
+
 $tab2.Controls.Add($btnActionInstallCID); $allButtons += $btnActionInstallCID
 
+
+
 $btnSavePhone = New-Object System.Windows.Forms.Button
+
 $btnSavePhone.Text = "Lưu Sao Lưu Key & CID (Desktop)"
+
 $btnSavePhone.Location = New-Object System.Drawing.Point(555, 208)
+
 $btnSavePhone.Size = New-Object System.Drawing.Size(260, 38)
+
 $btnSavePhone.Font = $fontBtn
+
 $btnSavePhone.BackColor = [System.Drawing.Color]::FromArgb(55, 71, 79)
+
 $btnSavePhone.ForeColor = [System.Drawing.Color]::White
+
 $btnSavePhone.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+
 $btnSavePhone.Cursor = [System.Windows.Forms.Cursors]::Hand
+
 $btnSavePhone.Add_Click({ Save-PhoneActivationBackup })
+
 $tab2.Controls.Add($btnSavePhone); $allButtons += $btnSavePhone
 
+
+
 # --- DÒNG 7: THÔNG BÁO TỔNG ĐÀI HOTLINE ---
+
 $lblHotlineNotice = New-Object System.Windows.Forms.Label
+
 $lblHotlineNotice.Text = "Hotline Hỗ Trợ Kích Hoạt Miễn Phí Của Microsoft: 1800 400 470 (24/7)  •  Bấm 1 (Tiếng Việt) -> Bấm 1 (Cá Nhân)"
+
 $lblHotlineNotice.Location = New-Object System.Drawing.Point(15, 254)
+
 $lblHotlineNotice.Size = New-Object System.Drawing.Size(800, 22)
+
 $lblHotlineNotice.Font = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
+
 $lblHotlineNotice.ForeColor = [System.Drawing.Color]::FromArgb(198, 40, 40)
+
 $lblHotlineNotice.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+
 $lblHotlineNotice.UseMnemonic = $false
+
 $tab2.Controls.Add($lblHotlineNotice)
 
+
+
 # --- DÒNG 8: KHUNG HƯỚNG DẪN QUY TRÌNH (QUICK GUIDE) ---
+
 $pnlGuide = New-Object System.Windows.Forms.Panel
+
 $pnlGuide.Location = New-Object System.Drawing.Point(15, 282)
+
 $pnlGuide.Size = New-Object System.Drawing.Size(800, 84)
+
 $pnlGuide.BackColor = [System.Drawing.Color]::FromArgb(240, 244, 248)
+
 $pnlGuide.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+
 $tab2.Controls.Add($pnlGuide)
 
+
+
 $lblGuideTitle = New-Object System.Windows.Forms.Label
+
 $lblGuideTitle.Text = "HƯỚNG DẪN QUY TRÌNH KÍCH HOẠT BY PHONE (3 BƯỚC NHANH GỌN):"
+
 $lblGuideTitle.Location = New-Object System.Drawing.Point(8, 5)
+
 $lblGuideTitle.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+
 $lblGuideTitle.ForeColor = [System.Drawing.Color]::FromArgb(21, 101, 192)
+
 $lblGuideTitle.AutoSize = $true
+
 $pnlGuide.Controls.Add($lblGuideTitle)
 
+
+
 $lblGuideContent = New-Object System.Windows.Forms.Label
+
 $lblGuideContent.Text = "1. Chọn đối tượng (Windows / Office) -> Bấm 'Lấy IID' (hoặc 'Nạp Key Phone Mới' nếu máy chưa nạp Key).`r`n" +
+
                         "2. Lấy mã CID: Gọi tổng đài miễn phí 1800 400 470 (bấm 'Trợ Lý Tổng Đài' để đọc 9 nhóm IID và nhận 8 khối CID), hoặc nhận CID từ bên cung cấp key.`r`n" +
+
                         "3. Bấm 'Dán & Nạp CID Kích Hoạt' để hoàn tất kích hoạt. Thành công bấm 'Lưu Sao Lưu' để tái sử dụng vĩnh viễn!"
+
 $lblGuideContent.Location = New-Object System.Drawing.Point(8, 26)
+
 $lblGuideContent.Size = New-Object System.Drawing.Size(782, 52)
+
 $lblGuideContent.Font = $fontSmall
+
 $lblGuideContent.ForeColor = [System.Drawing.Color]::FromArgb(50, 50, 50)
+
 $lblGuideContent.UseMnemonic = $false
+
 $pnlGuide.Controls.Add($lblGuideContent)
 
 # Cập nhật hiển thị trạng thái ban đầu
