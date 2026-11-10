@@ -49,6 +49,22 @@ if (-not $isAdmin) {
             Write-Host "    1. Nhap chuot phai vao file 'Run_WinLic.cmd' va chon 'Run as administrator'." -ForegroundColor Cyan
             Write-Host "    2. Hoac mo PowerShell bang 'Run as Administrator' roi go: .\$([System.IO.Path]::GetFileName($PSCommandPath))`n" -ForegroundColor Cyan
         }
+    } else {
+        # Chay tu RAM (irm lic.bachkhoapc.vn | iex) - Tu dong luu file tam va xin quyen Administrator
+        try {
+            $rawCode = if ($MyInvocation.MyCommand.Definition) { $MyInvocation.MyCommand.Definition } else { "" }
+            if ($rawCode.Length -gt 1000) {
+                $tempPs = Join-Path $env:TEMP "BKC_Lic.ps1"
+                $utf8BOM = New-Object System.Text.UTF8Encoding($true)
+                [System.IO.File]::WriteAllText($tempPs, $rawCode, $utf8BOM)
+                $psExe = if ($PSHOME -and (Test-Path "$PSHOME\powershell.exe")) { "$PSHOME\powershell.exe" } else { "powershell.exe" }
+                Start-Process -FilePath $psExe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tempPs`"" -Verb RunAs -ErrorAction Stop
+                Exit
+            }
+        } catch {
+            Write-Warning "Khong the tu dong chuyen quyen Administrator: $($_.Exception.Message)"
+            Write-Host "[!] Khuyen nghi: Vui long mo PowerShell bang 'Run as administrator' roi chay lai lenh online!`n" -ForegroundColor Yellow
+        }
     }
 }
 
@@ -1434,6 +1450,132 @@ function Invoke-ResetNetwork {
     }
     
     Write-Log "Hoàn tất dọn dẹp, cấp mới IP, Reset Winsock, TCP/IP, Proxy và Firewall!" "CLEAN"
+}
+
+function Invoke-OfficeLicensingDiagnostic {
+    $txtLog.Text = ""
+    Write-Log ">>> KHỞI CHẠY CÔNG CỤ CHẨN ĐOÁN GIẤY PHÉP OFFICE (OFFICE LICENSING DIAGNOSTIC)..." "INFO"
+
+    $msg = "CÔNG CỤ CHẨN ĐOÁN & SỬA LỖI GIẤY PHÉP BẢN QUYỀN OFFICE (http://aka.ms/diag_97275):`n`n" +
+           "Chuyên xử lý lỗi Office không nhận diện bản quyền OEM/Digital, đòi nhập key hoặc báo 'Unlicensed Product' trên các dòng máy tính có bản quyền đi kèm máy (Dell, Asus, HP, Lenovo...).`n`n" +
+           "• Bấm [YES]: SỬA LỖI TỰ ĐỘNG (1-Click Fix) - Đóng Office, cấu hình OOBEMode OEMTA và phân quyền Registry chuẩn Microsoft ngay lập tức.`n`n" +
+           "• Bấm [NO]: TẢI & CHẠY GÓI DIAGCAB CHÍNH THỨC - Tải file 'cssemerg97275.diagcab' từ Microsoft và mở trình chẩn đoán tương tác.`n`n" +
+           "• Bấm [CANCEL]: Hủy bỏ thao tác."
+
+    $choice = [System.Windows.Forms.MessageBox]::Show(
+        $msg,
+        "Công Cụ Chẩn Đoán Giấy Phép Office (Microsoft Diagnostic)",
+        [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+
+    if ($choice -eq [System.Windows.Forms.DialogResult]::Cancel) {
+        Write-Log "Đã hủy thao tác chẩn đoán bản quyền Office." "WARN"
+        return
+    }
+
+    if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
+        Write-Log "--- BẮT ĐẦU QUY TRÌNH SỬA LỖI BẢN QUYỀN OFFICE OEM (1-CLICK NATIVE FIX) ---" "INFO"
+        
+        # 1. Đóng các ứng dụng Office đang chạy
+        $apps = @("WINWORD", "EXCEL", "POWERPNT", "OUTLOOK", "ONENOTE", "MSACCESS", "MSPUB")
+        foreach ($app in $apps) {
+            $procs = Get-Process -Name $app -ErrorAction SilentlyContinue
+            if ($procs) {
+                Write-Log "Đang đóng ứng dụng: $app..." "WARN"
+                $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        # 2. Tạo và cấu hình khóa Registry OEMTA
+        $regPaths = @(
+            "HKLM:\SOFTWARE\Microsoft\Office\16.0\Common\OEM",
+            "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Office\16.0\Common\OEM"
+        )
+        
+        foreach ($p in $regPaths) {
+            try {
+                if (-not (Test-Path $p)) {
+                    New-Item -Path $p -Force | Out-Null
+                }
+                Set-ItemProperty -Path $p -Name "OOBEMode" -Value "OEMTA" -Type String -Force
+                Write-Log "Đã thiết lập OOBEMode = OEMTA tại: $p" "CLEAN"
+            } catch {
+                Write-Log "Lỗi ghi Registry tại $($p): $($_.Exception.Message)" "WARN"
+            }
+        }
+
+        # 3. Phân quyền FullControl cho nhóm người dùng (S-1-5-32-545: Users)
+        Write-Log "Đang cấu hình quyền truy cập (Permissions) cho thư mục OEM..." "INFO"
+        try {
+            $sid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
+            $userGroup = $sid.Translate([System.Security.Principal.NTAccount])
+            foreach ($subPath in @("SOFTWARE\Microsoft\Office\16.0\Common\OEM", "SOFTWARE\Wow6432Node\Microsoft\Office\16.0\Common\OEM")) {
+                $regKey = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($subPath, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+                if ($regKey) {
+                    $acl = $regKey.GetAccessControl()
+                    $rule = New-Object System.Security.AccessControl.RegistryAccessRule($userGroup, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+                    $acl.SetAccessRule($rule)
+                    $regKey.SetAccessControl($acl)
+                    $regKey.Close()
+                }
+            }
+            Write-Log "Cấp quyền FullControl thành công cho nhóm Users ($($userGroup.Value))!" "CLEAN"
+        } catch {
+            Write-Log "Cảnh báo phân quyền: $($_.Exception.Message)" "WARN"
+        }
+
+        # 4. Khởi động lại dịch vụ OSPPSVC / SPPSVC
+        Write-Log "Đang làm mới các dịch vụ cấp phép Office..." "INFO"
+        Restart-Service "osppsvc" -Force -ErrorAction SilentlyContinue
+        Restart-Service "sppsvc" -Force -ErrorAction SilentlyContinue
+
+        Write-Log "HOÀN TẤT SỬA LỖI BẢN QUYỀN OFFICE OEM THÀNH CÔNG!" "CLEAN"
+        Write-Log "-> Vui lòng mở lại Word hoặc Excel và đăng nhập tài khoản Microsoft để nhận bản quyền." "INFO"
+
+        [System.Windows.Forms.MessageBox]::Show(
+            "Đã sửa lỗi bản quyền Office OEM thành công!`n`n" +
+            "Hệ thống đã cấu hình lại OOBEMode chuẩn và cấp quyền đầy đủ.`n`n" +
+            "Vui lòng mở một ứng dụng Office (Word/Excel) và đăng nhập tài khoản Microsoft để nhận bản quyền.",
+            "Hoàn Tất Chẩn Đoán Office",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        )
+    } else {
+        # Lựa chọn [NO]: Tải và mở gói DiagCab chính thức từ aka.ms/diag_97275
+        Write-Log "--- ĐANG TẢI GÓI CHẨN ĐOÁN CHÍNH THỨC CỦA MICROSOFT (cssemerg97275.diagcab) ---" "INFO"
+        $diagUrl = "http://aka.ms/diag_97275"
+        $diagPath = Join-Path $env:TEMP "cssemerg97275.diagcab"
+        
+        Write-Log "Đang kết nối tới: $diagUrl..." "INFO"
+        [System.Windows.Forms.Application]::DoEvents()
+
+        try {
+            $wc = New-Object System.Net.WebClient
+            $wc.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            $wc.DownloadFile($diagUrl, $diagPath)
+            
+            if (Test-Path $diagPath) {
+                $fileSize = [math]::Round((Get-Item $diagPath).Length / 1KB, 1)
+                Write-Log "Tải về hoàn tất: $diagPath (~$fileSize KB)" "CLEAN"
+                Write-Log "Đang khởi chạy Microsoft Support Diagnostic Tool..." "INFO"
+                
+                if (Get-Command msdt.exe -ErrorAction SilentlyContinue) {
+                    Start-Process "msdt.exe" -ArgumentList "/cab `"$diagPath`""
+                } else {
+                    Start-Process -FilePath $diagPath
+                }
+                
+                Write-Log "Đã mở trình chẩn đoán Office! Vui lòng làm theo hướng dẫn trên màn hình của Microsoft." "CLEAN"
+            } else {
+                Write-Log "Không tìm thấy file tải về sau khi hoàn tất!" "CRIT"
+            }
+        } catch {
+            Write-Log "Lỗi khi tải gói chẩn đoán: $($_.Exception.Message)" "CRIT"
+            Write-Log "Đang mở trực tiếp liên kết $diagUrl trên trình duyệt..." "INFO"
+            Start-Process $diagUrl
+        }
+    }
 }
 
 function Invoke-BackupTokens {
@@ -4390,6 +4532,13 @@ $btnUninstallOffice.Location = New-Object System.Drawing.Point(15, 270)
 $btnUninstallOffice.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
 $btnUninstallOffice.BackColor = [System.Drawing.Color]::FromArgb(211, 47, 47); $btnUninstallOffice.ForeColor = [System.Drawing.Color]::White; $btnUninstallOffice.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnUninstallOffice.Cursor = [System.Windows.Forms.Cursors]::Hand
 $btnUninstallOffice.Add_Click({ Toggle-Buttons $false; Show-OfficeUninstaller; Toggle-Buttons $true }); $tab3.Controls.Add($btnUninstallOffice); $allButtons += $btnUninstallOffice
+
+$btnOfficeLicDiag = New-Object System.Windows.Forms.Button
+$btnOfficeLicDiag.Text = "Chẩn Đoán License Office (OEM)"
+$btnOfficeLicDiag.Location = New-Object System.Drawing.Point($col2, 270)
+$btnOfficeLicDiag.Size = New-Object System.Drawing.Size($btnWidth, $btnHeight)
+$btnOfficeLicDiag.BackColor = [System.Drawing.Color]::FromArgb(2, 119, 189); $btnOfficeLicDiag.ForeColor = [System.Drawing.Color]::White; $btnOfficeLicDiag.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat; $btnOfficeLicDiag.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnOfficeLicDiag.Add_Click({ Toggle-Buttons $false; Invoke-OfficeLicensingDiagnostic; Toggle-Buttons $true }); $tab3.Controls.Add($btnOfficeLicDiag); $allButtons += $btnOfficeLicDiag
 # TAB 4: Công cụ Bổ sung (Backup & PID)
 $tab4 = New-Object System.Windows.Forms.TabPage
 $tab4.Text = "4. Backup"
